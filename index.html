@@ -3,214 +3,163 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HTML Editor Pro</title>
+<title>HTML Editor Ultimate - GitHub Pages</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
+  :root{--primary:#0f3460;--secondary:#16213e;--accent:#e94560;--text:#e0e0e0;--bg:#1a1a2e;--edit:#9b59b6}
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Segoe UI',sans-serif;background:#1a1a2e;color:#e0e0e0;height:100vh;display:flex;flex-direction:column}
-  #topbar{background:#16213e;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:2px solid #0f3460;box-shadow:0 2px 8px rgba(0,0,0,.4)}
-  #topbar h1{font-size:1.1rem;color:#e94560;font-weight:700;margin-right:8px}
-  .btn{padding:7px 14px;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .2s}
-  .btn-primary{background:#0f3460;color:#fff}
-  .btn-primary:hover{background:#1a5276}
-  .btn-success{background:#1e8449;color:#fff}
-  .btn-success:hover{background:#27ae60}
-  .btn-warning{background:#b7770d;color:#fff}
-  .btn-warning:hover{background:#d4ac0d}
-  .btn-danger{background:#922b21;color:#fff}
-  .btn-danger:hover{background:#e74c3c}
-  .btn-edit{background:#6c3483;color:#fff}
-  .btn-edit.active{background:#9b59b6;box-shadow:0 0 8px #9b59b6}
-  .btn-edit:hover{background:#8e44ad}
-  #pdfOptions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  #pdfOptions label{font-size:.78rem;color:#aaa}
-  #pdfOptions select,#pdfOptions input{background:#0f3460;color:#e0e0e0;border:1px solid #2c5282;border-radius:4px;padding:4px 7px;font-size:.78rem}
-  #workspace{display:flex;flex:1;overflow:hidden}
-  #editorPane{width:48%;display:flex;flex-direction:column;border-right:2px solid #0f3460}
-  #editorLabel{background:#16213e;padding:6px 12px;font-size:.78rem;color:#aaa;border-bottom:1px solid #0f3460}
-  #htmlInput{flex:1;background:#0d1b2a;color:#a8d8ea;font-family:'Courier New',monospace;font-size:.85rem;padding:12px;border:none;resize:none;outline:none;line-height:1.6}
-  #previewPane{flex:1;display:flex;flex-direction:column}
-  #previewLabel{background:#16213e;padding:6px 12px;font-size:.78rem;color:#aaa;border-bottom:1px solid #0f3460;display:flex;justify-content:space-between;align-items:center}
-  #previewFrame{flex:1;border:none;background:#fff;width:100%}
-  #statusBar{background:#0f3460;padding:4px 14px;font-size:.75rem;color:#7fb3d3;border-top:1px solid #1a5276}
-  .edit-mode-indicator{color:#9b59b6;font-weight:600}
+  body{font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+  #topbar{background:var(--secondary);padding:8px 16px;display:flex;align-items:center;gap:12px;border-bottom:2px solid var(--primary);box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:10;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:8px;margin-right:12px}
+  .brand h1{font-size:1.1rem;color:var(--accent);letter-spacing:0.5px}
+  .btn-group{display:flex;gap:6px;align-items:center;background:rgba(0,0,0,0.2);padding:4px;border-radius:8px}
+  .btn{padding:6px 14px;border:none;border-radius:6px;cursor:pointer;font-size:0.82rem;font-weight:600;transition:all 0.2s ease;display:flex;align-items:center;gap:6px;white-space:nowrap}
+  .btn-p{background:var(--primary);color:#fff}
+  .btn-p:hover{background:#1a5276;transform:translateY(-1px)}
+  .btn-s{background:#1e8449;color:#fff}
+  .btn-s:hover{background:#27ae60;transform:translateY(-1px)}
+  .btn-w{background:#b7770d;color:#fff}
+  .btn-w:hover{background:#d4ac0d}
+  .btn-e{background:#6c3483;color:#fff}
+  .btn-e.active{background:var(--edit);box-shadow:0 0 10px var(--edit)}
+  .option-box{display:flex;align-items:center;gap:10px;padding:0 12px;border-left:1px solid rgba(255,255,255,0.1)}
+  .option-item{display:flex;align-items:center;gap:5px;font-size:0.75rem;color:#aaa}
+  select,input{background:var(--primary);color:var(--text);border:1px solid #2c5282;border-radius:4px;padding:3px 6px;font-size:0.75rem;outline:none}
+  #main{display:flex;flex:1;overflow:hidden}
+  .panel{display:flex;flex-direction:column;position:relative}
+  #editor-panel{width:45%;border-right:1px solid var(--primary)}
+  #preview-panel{flex:1;background:#f0f0f0}
+  .panel-hdr{background:var(--secondary);padding:6px 12px;font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center}
+  textarea{flex:1;background:#0d1b2a;color:#a8d8ea;font-family:'Fira Code','Courier New',monospace;font-size:0.88rem;padding:16px;border:none;resize:none;outline:none;line-height:1.6}
+  iframe{flex:1;border:none;background:#fff}
+  #status{background:var(--primary);padding:4px 16px;font-size:0.75rem;color:#7fb3d3;border-top:1px solid #1a5276;display:flex;justify-content:space-between}
+  .badge-edit{background:var(--edit);color:white;padding:1px 6px;border-radius:4px;font-size:0.65rem;font-weight:bold}
 </style>
 </head>
 <body>
 <div id="topbar">
-  <h1>HTML Editor Pro</h1>
-  <button class="btn btn-primary" onclick="updatePreview()">▶ 更新預覽</button>
-  <button class="btn btn-edit" id="editToggleBtn" onclick="toggleEditMode()">✏️ 直接改字：關</button>
-  <button class="btn btn-warning" onclick="syncBack()">⟳ 同步回 HTML</button>
-  <button class="btn btn-success" onclick="clearEditor()">🗑 清除</button>
-  <div id="pdfOptions">
-    <label>紙張：</label>
-    <select id="paperSize"><option value="a4">A4</option><option value="letter">Letter</option><option value="legal">Legal</option></select>
-    <label>方向：</label>
-    <select id="orientation"><option value="portrait">直向</option><option value="landscape">橫向</option></select>
-    <label>邊界(mm)：</label>
-    <input type="number" id="margin" value="10" min="0" max="50" style="width:55px">
-    <label>清晰度：</label>
-    <select id="dpi"><option value="1">標準</option><option value="2">高清(2x)</option><option value="3">超高清(3x)</option></select>
-    <button class="btn btn-danger" onclick="exportPDF()">⬇ 匯出 PDF</button>
+  <div class="brand"><h1>Editor Ultimate</h1></div>
+  <div class="btn-group">
+    <button class="btn btn-p" onclick="update()">▶ 更新</button>
+    <button class="btn btn-e" id="ebtn" onclick="toggleEdit()">✏️ 直接改字：關</button>
+    <button class="btn btn-w" onclick="sync()">⟳ 同步</button>
+  </div>
+  <div class="option-box">
+    <div class="option-item"><label>紙張</label><select id="ps"><option value="a4">A4</option><option value="letter">Letter</option></select></div>
+    <div class="option-item"><label>方向</label><select id="ori"><option value="portrait">直向</option><option value="landscape">橫向</option></select></div>
+    <button class="btn btn-s" onclick="pdf()">⬇ 匯出 PDF</button>
   </div>
 </div>
-<div id="workspace">
-  <div id="editorPane">
-    <div id="editorLabel">📝 HTML 原始碼</div>
-    <textarea id="htmlInput" placeholder="在此貼上你的 HTML 代碼..."
-onkeydown="handleTab(event)"
-oninput="livePreview()"></textarea>
+<div id="main">
+  <div class="panel" id="editor-panel">
+    <div class="panel-hdr"><span>HTML Source</span></div>
+    <textarea id="code" oninput="live()" spellcheck="false"></textarea>
   </div>
-  <div id="previewPane">
-    <div id="previewLabel">
-      <span>👁 即時預覽</span>
-      <span id="editStatus"></span>
-    </div>
-    <iframe id="previewFrame"></iframe>
+  <div class="panel" id="preview-panel">
+    <div class="panel-hdr"><span>Live Preview</span><div id="emode"></div></div>
+    <iframe id="view"></iframe>
   </div>
 </div>
-<div id="statusBar" id="statusBar">就緒 — 貼上 HTML 代碼後即時預覽</div>
+<div id="status"><span id="stxt">Ready</span><span id="ts"></span></div>
 <script>
-  var editMode = false;
-  var liveTimer = null;
+  let em = false, lt = null;
+  const $ = id => document.getElementById(id);
 
-  function setStatus(msg){
-    document.getElementById('statusBar').textContent = msg;
+  function msg(t){ $('stxt').innerText = t; $('ts').innerText = new Date().toLocaleTimeString(); }
+
+  function live(){ clearTimeout(lt); lt = setTimeout(update, 500); }
+
+  function update(){
+    const html = $('code').value;
+    const f = $('view');
+    f.srcdoc = html;
+    f.onload = () => { if(em) apply(); msg('Preview Updated'); };
   }
 
-  function livePreview(){
-    clearTimeout(liveTimer);
-    liveTimer = setTimeout(function(){ updatePreview(); }, 400);
-  }
-
-  function updatePreview(){
-    var html = document.getElementById('htmlInput').value;
-    var frame = document.getElementById('previewFrame');
-    frame.srcdoc = html;
-    frame.onload = function(){
-      if(editMode) applyEditMode();
-      setStatus('預覽已更新 — ' + new Date().toLocaleTimeString());
-    };
-  }
-
-  function applyEditMode(){
-    try{
-      var doc = document.getElementById('previewFrame').contentDocument;
+  function apply(){
+    try {
+      const doc = $('view').contentDocument;
       if(!doc) return;
-      var tags = ['h1','h2','h3','h4','h5','h6','p','li','td','th','span','div','a','button','label','caption','figcaption','blockquote','dt','dd'];
-      tags.forEach(function(tag){
-        var els = doc.querySelectorAll(tag);
-        els.forEach(function(el){
-          el.setAttribute('contenteditable','true');
-          el.style.outline='2px dashed #9b59b6';
-          el.style.cursor='text';
-          el.style.borderRadius='3px';
+      const tags = 'h1,h2,h3,h4,h5,h6,p,li,td,th,span,div,a,button,label,caption,blockquote'.split(',');
+      tags.forEach(t => {
+        doc.querySelectorAll(t).forEach(el => {
+          el.contentEditable = true;
+          el.style.outline = '2px dashed #9b59b6';
+          el.style.cursor = 'text';
         });
       });
-      setStatus('直接改字模式已開啟 — 點擊預覽內文字即可編輯');
-    } catch(e){
-      setStatus('錯誤：' + e.message);
-    }
+      msg('Edit Mode Active - Click text to modify');
+    } catch(e) { msg('Error: ' + e.message); }
   }
 
-  function removeEditMode(){
-    try{
-      var doc = document.getElementById('previewFrame').contentDocument;
+  function remove(){
+    try {
+      const doc = $('view').contentDocument;
       if(!doc) return;
-      var els = doc.querySelectorAll('[contenteditable]');
-      els.forEach(function(el){
-        el.removeAttribute('contenteditable');
-        el.style.outline='';
-        el.style.cursor='';
-        el.style.borderRadius='';
+      doc.querySelectorAll('[contenteditable]').forEach(el => {
+        el.contentEditable = false;
+        el.style.outline = '';
+        el.style.cursor = '';
       });
     } catch(e){}
   }
 
-  function toggleEditMode(){
-    editMode = !editMode;
-    var btn = document.getElementById('editToggleBtn');
-    var status = document.getElementById('editStatus');
-    if(editMode){
-      btn.textContent = '✏️ 直接改字：開';
-      btn.classList.add('active');
-      status.innerHTML = '<span class="edit-mode-indicator">✏️ 編輯模式</span>';
-      applyEditMode();
-    } else {
-      btn.textContent = '✏️ 直接改字：關';
-      btn.classList.remove('active');
-      status.innerHTML = '';
-      removeEditMode();
-      setStatus('直接改字模式已關閉');
-    }
+  function toggleEdit(){
+    em = !em;
+    $('ebtn').innerText = em ? '✏️ 直接改字：開' : '✏️ 直接改字：關';
+    $('ebtn').classList.toggle('active', em);
+    $('emode').innerHTML = em ? '<span class="badge-edit">EDITING</span>' : '';
+    em ? apply() : remove();
   }
 
-  function syncBack(){
-    try{
-      var doc = document.getElementById('previewFrame').contentDocument;
-      if(!doc){ setStatus('無法讀取預覽內容'); return; }
-      var body = doc.body;
-      if(!body){ setStatus('預覽為空'); return; }
-      document.getElementById('htmlInput').value = body.innerHTML;
-      setStatus('已同步回 HTML — ' + new Date().toLocaleTimeString());
-    } catch(e){
-      setStatus('同步失敗：' + e.message);
-    }
+  function sync(){
+    try {
+      const body = $('view').contentDocument.body;
+      if(!body) return;
+      $('code').value = body.innerHTML;
+      msg('Synced changes back to source');
+    } catch(e){ msg('Sync Failed: ' + e.message); }
   }
 
-  function clearEditor(){
-    document.getElementById('htmlInput').value = '';
-    document.getElementById('previewFrame').srcdoc = '';
-    editMode = false;
-    var btn = document.getElementById('editToggleBtn');
-    btn.textContent = '✏️ 直接改字：關';
-    btn.classList.remove('active');
-    document.getElementById('editStatus').innerHTML = '';
-    setStatus('已清除');
+  function pdf(){
+    const doc = $('view').contentDocument;
+    if(!doc || !doc.body) return;
+    msg('Generating PDF...');
+    const opt = {
+      margin: 10,
+      filename: 'export.pdf',
+      image: { type:'jpeg', quality:0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit:'mm', format: $('ps').value, orientation: $('ori').value }
+    };
+    html2pdf().set(opt).from(doc.body).save().then(()=>msg('PDF Exported')).catch(e=>msg('PDF Failed: '+e.message));
   }
 
-  function exportPDF(){
-    try{
-      var doc = document.getElementById('previewFrame').contentDocument;
-      if(!doc || !doc.body){ setStatus('請先載入 HTML 內容'); return; }
-      setStatus('正在生成 PDF，請稍候...');
-      var size = document.getElementById('paperSize').value;
-      var ori = document.getElementById('orientation').value;
-      var mg = parseInt(document.getElementById('margin').value) || 10;
-      var scale = parseInt(document.getElementById('dpi').value) || 2;
-      var el = doc.body;
-      var opt = {
-        margin: mg,
-        filename: 'html-editor-export.pdf',
-        image: { type:'jpeg', quality:0.98 },
-        html2canvas: { scale: scale, useCORS: true, allowTaint: true },
-        jsPDF: { unit:'mm', format: size, orientation: ori }
-      };
-      html2pdf().set(opt).from(el).save().then(function(){
-        setStatus('PDF 已匯出！ — ' + new Date().toLocaleTimeString());
-      }).catch(function(e){
-        setStatus('PDF 匯出失敗：' + e.message);
-      });
-    } catch(e){
-      setStatus('PDF 匯出錯誤：' + e.message);
-    }
-  }
-
-  function handleTab(e){
-    if(e.key==='Tab'){
-      e.preventDefault();
-      var ta = document.getElementById('htmlInput');
-      var s = ta.selectionStart, end = ta.selectionEnd;
-      ta.value = ta.value.substring(0,s)+'  '+ta.value.substring(end);
-      ta.selectionStart = ta.selectionEnd = s+2;
-    }
-  }
-
-  window.onload = function(){
-    var sample = '<html>\n<head>\n<style>\nbody{font-family:Arial,sans-serif;padding:30px;max-width:800px;margin:0 auto}\nh1{color:#2c3e50;border-bottom:3px solid #3498db;padding-bottom:10px}\np{color:#555;line-height:1.8}\n.highlight{background:#f9e79f;padding:2px 6px;border-radius:3px}\n</style>\n</head>\n<body>\n<h1>歡迎使用 HTML Editor Pro</h1>\n<p>這是一個示範段落。你可以直接在這裡 <span class="highlight">貼上你的 HTML</span>，右側會即時預覽效果。</p>\n<p>開啟「直接改字」模式後，可以直接在右側點擊文字進行修改，完成後按「同步回 HTML」即可保存變更。</p>\n<h2>功能列表</h2>\n<ul>\n<li>即時 HTML 預覽</li>\n<li>直接點擊文字修改</li>\n<li>同步回原始碼</li>\n<li>支援 A4 / Letter / Legal 匯出 PDF</li>\n</ul>\n</body>\n</html>';
-    document.getElementById('htmlInput').value = sample;
-    updatePreview();
+  window.onload = () => {
+    $('code').value = `<html>
+<head>
+<style>
+  body{padding:40px;font-family:system-ui;color:#333;max-width:800px;margin:auto;line-height:1.6}
+  h1{color:#0f3460;border-bottom:2px solid #e94560;padding-bottom:10px;margin-bottom:20px}
+  .card{background:#f8f9fa;border-radius:12px;padding:24px;border:1px solid #dee2e6;margin:20px 0}
+  .tag{background:#e94560;color:white;padding:2px 8px;border-radius:4px;font-size:0.8rem;font-weight:bold}
+</style>
+</head>
+<body>
+  <h1>HTML Editor Ultimate</h1>
+  <p>這是在 GitHub Pages 上運行的最終穩定版。你可以在此編輯 HTML 並即時預覽。</p>
+  <div class="card">
+    <span class="tag">PRO TIP</span>
+    <p style="margin-top:10px">開啟<b>「直接改字」</b>後，右邊預覽內的文字會出現紫色虛線，直接點擊即可修改內容。</p>
+  </div>
+  <ul>
+    <li>支援 A4/Letter PDF 匯出</li>
+    <li>自動同步回原始碼</li>
+    <li>深色模式編輯介面</li>
+  </ul>
+</body>
+</html>`;
+    update();
   };
 </script>
 </body>
