@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HTML Editor Ultimate - LaTeX & Print Support</title>
-<!-- PDF & LaTeX Libraries -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
@@ -12,78 +11,54 @@
 <style>
   :root{--primary:#0f3460;--secondary:#16213e;--accent:#e94560;--text:#e0e0e0;--bg:#1a1a2e;--edit:#9b59b6}
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
-  #topbar{background:var(--secondary);padding:8px 16px;display:flex;align-items:center;gap:12px;border-bottom:2px solid var(--primary);box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:10;flex-wrap:wrap}
-  .brand h1{font-size:1.1rem;color:var(--accent);letter-spacing:0.5px}
-  .btn-group{display:flex;gap:6px;align-items:center;background:rgba(0,0,0,0.2);padding:4px;border-radius:8px}
-  .btn{padding:6px 14px;border:none;border-radius:6px;cursor:pointer;font-size:0.82rem;font-weight:600;transition:all 0.2s;display:flex;align-items:center;gap:6px;white-space:nowrap}
-  .btn-p{background:var(--primary);color:#fff}.btn-p:hover{background:#1a5276}
-  .btn-s{background:#1e8449;color:#fff}.btn-s:hover{background:#27ae60}
-  .btn-print{background:#2980b9;color:#fff}.btn-print:hover{background:#3498db}
-  .btn-e{background:#6c3483;color:#fff}.btn-e.active{background:var(--edit);box-shadow:0 0 10px var(--edit)}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+  #topbar{background:var(--secondary);padding:8px 16px;display:flex;align-items:center;gap:12px;border-bottom:2px solid var(--primary);z-index:10}
+  .btn-group{display:flex;gap:6px;background:rgba(0,0,0,0.2);padding:4px;border-radius:8px}
+  .btn{padding:6px 14px;border:none;border-radius:6px;cursor:pointer;font-size:0.82rem;font-weight:600;color:#fff}
+  .btn-p{background:var(--primary)}.btn-s{background:#1e8449}.btn-print{background:#2980b9}.btn-e{background:#6c3483}.btn-e.active{background:var(--edit)}
   #main{display:flex;flex:1;overflow:hidden}
-  .panel{display:flex;flex-direction:column;width:50%}
-  #editor-panel{border-right:1px solid var(--primary)}
-  #preview-panel{background:#fff;color:#000}
-  .panel-hdr{background:var(--secondary);padding:6px 12px;font-size:0.7rem;color:#888;text-transform:uppercase;display:flex;justify-content:space-between}
-  textarea{flex:1;background:#0d1b2a;color:#a8d8ea;font-family:monospace;font-size:0.9rem;padding:16px;border:none;resize:none;outline:none;line-height:1.5}
+  .panel{display:flex;flex-direction:column;width:50%;height:100%}
+  textarea{flex:1;background:#0d1b2a;color:#a8d8ea;font-family:monospace;padding:16px;border:none;outline:none}
   iframe{flex:1;border:none;background:#fff}
-  #status{background:var(--primary);padding:4px 16px;font-size:0.75rem;color:#7fb3d3;display:flex;justify-content:space-between}
 </style>
 </head>
 <body>
 <div id="topbar">
-  <div class="brand"><h1>Editor Ultimate</h1></div>
-  <div class="btn-group">
-    <button class="btn btn-p" onclick="update()">▶ 更新</button>
-    <button class="btn btn-e" id="ebtn" onclick="toggleEdit()">✏️ 直接改字</button>
-  </div>
-  <div class="btn-group">
-    <button class="btn btn-print" onclick="printView()">🖨 瀏覽器列印</button>
-    <button class="btn btn-s" onclick="exportJS()">⬇ html2pdf 匯出</button>
-  </div>
+  <div class="btn-group"><button class="btn btn-p" onclick="update()">▶ 更新</button><button class="btn btn-e" id="ebtn" onclick="toggleEdit()">✏️ 直接改字</button></div>
+  <div class="btn-group"><button class="btn btn-print" onclick="printIframe()">🖨 瀏覽器列印</button><button class="btn btn-s" onclick="exportPDF()">⬇ html2pdf 匯出</button></div>
 </div>
 <div id="main">
-  <div class="panel" id="editor-panel">
-    <div class="panel-hdr"><span>HTML / LaTeX Source</span></div>
-    <textarea id="code" oninput="live()"></textarea>
-  </div>
-  <div class="panel" id="preview-panel">
-    <div class="panel-hdr"><span>Live Preview</span><div id="emode"></div></div>
-    <iframe id="view"></iframe>
-  </div>
+  <div class="panel"><textarea id="code" oninput="liveUpdate()"></textarea></div>
+  <div class="panel"><iframe id="view"></iframe></div>
 </div>
-<div id="status"><span id="stxt">Ready</span><span id="ts"></span></div>
 <script>
-  let em = false, lt = null;
+  let editOn = false, timer = null;
   const $ = id => document.getElementById(id);
 
-  function msg(t){ $('stxt').innerText = t; $('ts').innerText = new Date().toLocaleTimeString(); }
-  function live(){ clearTimeout(lt); lt = setTimeout(update, 500); }
+  function liveUpdate(){ clearTimeout(timer); timer = setTimeout(update, 500); }
 
   function update(){
-    const html = $('code').value;
-    const f = $('view');
+    const content = $('code').value;
+    const iframe = $('view');
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
     const template = `<!DOCTYPE html><html><head><meta charset="utf-8">
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
       <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"><\\/script>
       <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"><\\/script>
-      <style>body{margin:20px;font-family:sans-serif;} @media print { body{margin:0;} }</style></head>
-      <body>\${html}</body></html>`;
-    f.srcdoc = template;
-    f.onload = () => { if(em) apply(); msg('Preview Updated (LaTeX Support Active)'); };
+      <style>body{margin:20px;font-family:sans-serif;word-wrap:break-word;}</style></head>
+      <body>\${content}</body></html>`;
+    doc.open(); doc.write(template); doc.close();
+    if(editOn) setTimeout(applyEdit, 100);
   }
 
-  function apply(){
-    try {
-      const doc = $('view').contentDocument;
-      doc.querySelectorAll('h1,h2,h3,p,li,td,span,div').forEach(el => { el.contentEditable = true; el.style.outline = '1px dashed #9b59b6'; });
-    } catch(e){}
+  function applyEdit(){
+    const doc = $('view').contentDocument;
+    doc.querySelectorAll('h1,h2,h3,p,li,td,span,div').forEach(el => { el.contentEditable = true; el.style.outline = '1px dashed #9b59b6'; });
   }
 
-  function toggleEdit(){ em = !em; $('ebtn').classList.toggle('active', em); update(); }
-  function printView(){ const f = $('view'); f.contentWindow.focus(); f.contentWindow.print(); msg('Print Triggered'); }
-  function exportJS(){ html2pdf().from($('view').contentDocument.body).set({ margin:10, filename:'export.pdf', html2canvas:{scale:2} }).save().then(()=>msg('Done')); }
+  function toggleEdit(){ editOn = !editOn; $('ebtn').classList.toggle('active', editOn); update(); }
+  function printIframe(){ const f = $('view'); f.contentWindow.focus(); f.contentWindow.print(); }
+  function exportPDF(){ html2pdf().from($('view').contentDocument.body).set({ margin:10, filename:'export.pdf', html2canvas:{scale:2} }).save(); }
 
   window.onload = () => {
     $('code').value = '<h1>數學公式測試</h1>\
