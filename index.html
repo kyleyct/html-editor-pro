@@ -64,49 +64,26 @@
   function update(){
     const html = $('code').value;
     const f = $('view');
-    // 注入 KaTeX 渲染邏輯到 iframe
-    const template = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
-        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"><\\/script>
-        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"><\\/script>
-        <style>body{margin:20px;font-family:sans-serif;} @media print { body{margin:0;} }</style>
-      </head>
-      <body>${html}</body>
-      </html>
-    `;
+    const template = `<!DOCTYPE html><html><head><meta charset="utf-8">
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+      <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"><\\/script>
+      <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"><\\/script>
+      <style>body{margin:20px;font-family:sans-serif;} @media print { body{margin:0;} }</style></head>
+      <body>\${html}</body></html>`;
     f.srcdoc = template;
-    f.onload = () => { if(em) apply(); msg('Preview Updated (with LaTeX Support)'); };
+    f.onload = () => { if(em) apply(); msg('Preview Updated (LaTeX Support Active)'); };
   }
 
   function apply(){
-    const doc = $('view').contentDocument;
-    if(!doc) return;
-    doc.querySelectorAll('h1,h2,h3,p,li,td,span,div').forEach(el => {
-      el.contentEditable = true; el.style.outline = '1px dashed #9b59b6';
-    });
+    try {
+      const doc = $('view').contentDocument;
+      doc.querySelectorAll('h1,h2,h3,p,li,td,span,div').forEach(el => { el.contentEditable = true; el.style.outline = '1px dashed #9b59b6'; });
+    } catch(e){}
   }
 
-  function toggleEdit(){
-    em = !em;
-    $('ebtn').classList.toggle('active', em);
-    update();
-  }
-
-  function printView(){
-    const f = $('view');
-    f.contentWindow.focus();
-    f.contentWindow.print();
-    msg('Browser Print Triggered');
-  }
-
-  function exportJS(){
-    const doc = $('view').contentDocument;
-    msg('Generating via html2pdf...');
-    html2pdf().from(doc.body).set({ margin:10, filename:'export.pdf', html2canvas:{scale:2} }).save().then(()=>msg('Done'));
-  }
+  function toggleEdit(){ em = !em; $('ebtn').classList.toggle('active', em); update(); }
+  function printView(){ const f = $('view'); f.contentWindow.focus(); f.contentWindow.print(); msg('Print Triggered'); }
+  function exportJS(){ html2pdf().from($('view').contentDocument.body).set({ margin:10, filename:'export.pdf', html2canvas:{scale:2} }).save().then(()=>msg('Done')); }
 
   window.onload = () => {
     $('code').value = '<h1>數學公式測試</h1>\
