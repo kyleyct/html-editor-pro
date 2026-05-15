@@ -54,7 +54,6 @@
     const frame = el('viewer');
     const doc = frame.contentDocument || frame.contentWindow.document;
 
-    // 極度穩定的字串組合法，避開任何 Template Literal 陷阱
     const h = '<!DOCTYPE html><html><head><meta charset="utf-8">' +
       '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">' +
       '<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"><\\/script>' +
@@ -67,7 +66,7 @@
     doc.close();
 
     if(isEditing) setTimeout(applyEditNodes, 300);
-    setMsg('預覽已更新 (LaTeX 支援中)');
+    setMsg('預覽已更新');
   }
 
   function applyEditNodes() {
@@ -96,10 +95,10 @@
   }
 
   window.onload = () => {
-    el('code').value = '<h1>數學公式測試</h1>
-<p>這是行內公式：$E=mc^2$</p>
-<p>這是獨立區塊公式：</p>
-$$x = \\\\frac{-b \\\\pm \\\\sqrt{b^2 - 4ac}}{2a}$$';
+    el('code').value = '<h1>數學公式測試</h1>\
+<p>這是行內公式：$E=mc^2$</p>\
+<p>這是獨立區塊公式：</p>\
+$$x = \\\\\\\\frac{-b \\\\\\\\pm \\\\\\\\sqrt{b^2 - 4ac}}{2a}$$';
     setTimeout(forceUpdate, 500);
   };
 </script>
