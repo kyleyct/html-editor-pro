@@ -3,76 +3,104 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HTML Editor Ultimate - LaTeX & Print Support</title>
+<title>HTML Editor Pro - LaTeX & Print</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
 <style>
-  :root{--primary:#0f3460;--secondary:#16213e;--accent:#e94560;--text:#e0e0e0;--bg:#1a1a2e;--edit:#9b59b6}
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
-  #topbar{background:var(--secondary);padding:8px 16px;display:flex;align-items:center;gap:12px;border-bottom:2px solid var(--primary);z-index:10}
-  .btn-group{display:flex;gap:6px;background:rgba(0,0,0,0.2);padding:4px;border-radius:8px}
-  .btn{padding:6px 14px;border:none;border-radius:6px;cursor:pointer;font-size:0.82rem;font-weight:600;color:#fff}
-  .btn-p{background:var(--primary)}.btn-s{background:#1e8449}.btn-print{background:#2980b9}.btn-e{background:#6c3483}.btn-e.active{background:var(--edit)}
-  #main{display:flex;flex:1;overflow:hidden}
-  .panel{display:flex;flex-direction:column;width:50%;height:100%}
-  textarea{flex:1;background:#0d1b2a;color:#a8d8ea;font-family:monospace;padding:16px;border:none;outline:none;resize:none}
-  iframe{flex:1;border:none;background:#fff}
+  :root { --p:#0f3460; --s:#16213e; --a:#e94560; --t:#e0e0e0; --bg:#1a1a2e; --e:#9b59b6; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--t); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+  #nav { background: var(--s); padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid var(--p); z-index: 100; }
+  .logo { font-weight: bold; color: var(--a); font-size: 1.2rem; }
+  .btns { display: flex; gap: 8px; }
+  button { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #fff; transition: 0.2s; }
+  .btn-update { background: var(--p); } .btn-edit { background: #6c3483; } .btn-edit.active { background: var(--e); box-shadow: 0 0 8px var(--e); }
+  .btn-print { background: #2980b9; } .btn-pdf { background: #1e8449; }
+  #main { display: flex; flex: 1; overflow: hidden; background: #fff; }
+  #editor { width: 50%; height: 100%; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
+  #code { flex: 1; background: #0d1b2a; color: #a8d8ea; font-family: monospace; font-size: 0.95rem; padding: 20px; border: none; outline: none; resize: none; }
+  #preview { flex: 1; height: 100%; position: relative; }
+  iframe { width: 100%; height: 100%; border: none; background: #fff; }
+  #footer { background: var(--p); padding: 4px 20px; font-size: 0.75rem; color: #7fb3d3; display: flex; justify-content: space-between; }
 </style>
 </head>
 <body>
-<div id="topbar">
-  <div class="btn-group"><button class="btn btn-p" onclick="update()">▶ 更新</button><button class="btn btn-e" id="ebtn" onclick="toggleEdit()">✏️ 直接改字</button></div>
-  <div class="btn-group"><button class="btn btn-print" onclick="printIframe()">🖨 瀏覽器列印</button><button class="btn btn-s" onclick="exportPDF()">⬇ html2pdf 匯出</button></div>
+<div id="nav">
+  <div class="logo">Editor Pro</div>
+  <div class="btns">
+    <button class="btn-update" onclick="forceUpdate()">▶ 更新預覽</button>
+    <button class="btn-edit" id="eb" onclick="toggleEdit()">✏️ 直接改字</button>
+    <button class="btn-print" onclick="doPrint()">🖨 瀏覽器列印</button>
+    <button class="btn-pdf" onclick="doPDF()">⬇ PDF 匯出</button>
+  </div>
 </div>
 <div id="main">
-  <div class="panel"><textarea id="code" oninput="liveUpdate()"></textarea></div>
-  <div class="panel"><iframe id="view"></iframe></div>
+  <div id="editor"><textarea id="code" oninput="autoUpdate()" spellcheck="false"></textarea></div>
+  <div id="preview"><iframe id="viewer"></iframe></div>
 </div>
+<div id="footer"><span id="msg">就緒</span><span id="time"></span></div>
 <script>
-  let editOn = false, timer = null;
-  const $ = id => document.getElementById(id);
+  let isEditing = false, timer = null;
+  const el = id => document.getElementById(id);
 
-  function liveUpdate(){ clearTimeout(timer); timer = setTimeout(update, 500); }
+  function setMsg(m) { el('msg').innerText = m; el('time').innerText = new Date().toLocaleTimeString(); }
 
-  function update(){
-    const content = $('code').value;
-    const iframe = $('view');
-    const doc = iframe.contentDocument || iframe.contentWindow.document;
-    
-    // 使用基礎 HTML 結構，不包含動態變數注入在 srcdoc 中
-    const header = '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+  function autoUpdate() { clearTimeout(timer); timer = setTimeout(forceUpdate, 600); }
+
+  function forceUpdate() {
+    const raw = el('code').value;
+    const frame = el('viewer');
+    const doc = frame.contentDocument || frame.contentWindow.document;
+
+    // 極度穩定的字串組合法，避開任何 Template Literal 陷阱
+    const h = '<!DOCTYPE html><html><head><meta charset="utf-8">' +
       '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">' +
       '<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"><\\/script>' +
       '<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body, {delimiters:[{left:\'$$\',right:\'$$\',display:true},{left:\'$\',right:\'$\',display:false}]})"><\\/script>' +
-      '<style>body{margin:20px;font-family:sans-serif;word-wrap:break-word;}</style></head><body>';
-    const footer = '</body></html>';
-    
+      '<style>body{margin:30px;font-family:sans-serif;line-height:1.6;} @media print{body{margin:0;}}</style></head><body>';
+    const f = '</body></html>';
+
     doc.open();
-    doc.write(header + content + footer);
+    doc.write(h + raw + f);
     doc.close();
-    
-    if(editOn) setTimeout(applyEdit, 200);
+
+    if(isEditing) setTimeout(applyEditNodes, 300);
+    setMsg('預覽已更新 (LaTeX 支援中)');
   }
 
-  function applyEdit(){
-    const doc = $('view').contentDocument;
-    if(!doc) return;
-    doc.querySelectorAll('h1,h2,h3,p,li,td,span,div').forEach(el => { el.contentEditable = true; el.style.outline = '1px dashed #9b59b6'; });
+  function applyEditNodes() {
+    try {
+      const d = el('viewer').contentDocument;
+      const selectors = 'h1,h2,h3,h4,h5,p,li,span,div,td,th,b,i';
+      d.querySelectorAll(selectors).forEach(n => {
+        n.contentEditable = true;
+        n.style.outline = '1px dashed #9b59b6';
+      });
+    } catch(e) {}
   }
 
-  function toggleEdit(){ editOn = !editOn; $('ebtn').classList.toggle('active', editOn); update(); }
-  function printIframe(){ const f = $('view'); f.contentWindow.focus(); f.contentWindow.print(); }
-  function exportPDF(){ html2pdf().from($('view').contentDocument.body).set({ margin:10, filename:'export.pdf', html2canvas:{scale:2} }).save(); }
+  function toggleEdit() {
+    isEditing = !isEditing;
+    el('eb').classList.toggle('active', isEditing);
+    forceUpdate();
+  }
+
+  function doPrint() { const w = el('viewer').contentWindow; w.focus(); w.print(); }
+
+  function doPDF() {
+    const body = el('viewer').contentDocument.body;
+    setMsg('正在產生 PDF...');
+    html2pdf().from(body).set({ margin:10, filename:'export.pdf', html2canvas:{scale:2} }).save().then(()=>setMsg('匯出完成'));
+  }
 
   window.onload = () => {
-    $('code').value = '<h1>數學公式測試</h1>\
-<p>這是行內公式：$E=mc^2$</p>\
-<p>這是獨立區塊公式：</p>\
+    el('code').value = '<h1>數學公式測試</h1>
+<p>這是行內公式：$E=mc^2$</p>
+<p>這是獨立區塊公式：</p>
 $$x = \\\\frac{-b \\\\pm \\\\sqrt{b^2 - 4ac}}{2a}$$';
-    update();
+    setTimeout(forceUpdate, 500);
   };
 </script>
 </body>
