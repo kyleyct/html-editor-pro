@@ -18,7 +18,7 @@
   .btn-p{background:var(--primary)}.btn-s{background:#1e8449}.btn-print{background:#2980b9}.btn-e{background:#6c3483}.btn-e.active{background:var(--edit)}
   #main{display:flex;flex:1;overflow:hidden}
   .panel{display:flex;flex-direction:column;width:50%;height:100%}
-  textarea{flex:1;background:#0d1b2a;color:#a8d8ea;font-family:monospace;padding:16px;border:none;outline:none}
+  textarea{flex:1;background:#0d1b2a;color:#a8d8ea;font-family:monospace;padding:16px;border:none;outline:none;resize:none}
   iframe{flex:1;border:none;background:#fff}
 </style>
 </head>
@@ -41,18 +41,25 @@
     const content = $('code').value;
     const iframe = $('view');
     const doc = iframe.contentDocument || iframe.contentWindow.document;
-    const template = `<!DOCTYPE html><html><head><meta charset="utf-8">
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
-      <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"><\\/script>
-      <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"><\\/script>
-      <style>body{margin:20px;font-family:sans-serif;word-wrap:break-word;}</style></head>
-      <body>\${content}</body></html>`;
-    doc.open(); doc.write(template); doc.close();
-    if(editOn) setTimeout(applyEdit, 100);
+    
+    // 使用基礎 HTML 結構，不包含動態變數注入在 srcdoc 中
+    const header = '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+      '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">' +
+      '<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"><\\/script>' +
+      '<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body, {delimiters:[{left:\'$$\',right:\'$$\',display:true},{left:\'$\',right:\'$\',display:false}]})"><\\/script>' +
+      '<style>body{margin:20px;font-family:sans-serif;word-wrap:break-word;}</style></head><body>';
+    const footer = '</body></html>';
+    
+    doc.open();
+    doc.write(header + content + footer);
+    doc.close();
+    
+    if(editOn) setTimeout(applyEdit, 200);
   }
 
   function applyEdit(){
     const doc = $('view').contentDocument;
+    if(!doc) return;
     doc.querySelectorAll('h1,h2,h3,p,li,td,span,div').forEach(el => { el.contentEditable = true; el.style.outline = '1px dashed #9b59b6'; });
   }
 
