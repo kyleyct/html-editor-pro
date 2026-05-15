@@ -3,37 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HTML Editor Ultimate - GitHub Pages</title>
+<title>HTML Editor Ultimate - LaTeX & Print Support</title>
+<!-- PDF & LaTeX Libraries -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
 <style>
   :root{--primary:#0f3460;--secondary:#16213e;--accent:#e94560;--text:#e0e0e0;--bg:#1a1a2e;--edit:#9b59b6}
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+  body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
   #topbar{background:var(--secondary);padding:8px 16px;display:flex;align-items:center;gap:12px;border-bottom:2px solid var(--primary);box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:10;flex-wrap:wrap}
-  .brand{display:flex;align-items:center;gap:8px;margin-right:12px}
   .brand h1{font-size:1.1rem;color:var(--accent);letter-spacing:0.5px}
   .btn-group{display:flex;gap:6px;align-items:center;background:rgba(0,0,0,0.2);padding:4px;border-radius:8px}
-  .btn{padding:6px 14px;border:none;border-radius:6px;cursor:pointer;font-size:0.82rem;font-weight:600;transition:all 0.2s ease;display:flex;align-items:center;gap:6px;white-space:nowrap}
-  .btn-p{background:var(--primary);color:#fff}
-  .btn-p:hover{background:#1a5276;transform:translateY(-1px)}
-  .btn-s{background:#1e8449;color:#fff}
-  .btn-s:hover{background:#27ae60;transform:translateY(-1px)}
-  .btn-w{background:#b7770d;color:#fff}
-  .btn-w:hover{background:#d4ac0d}
-  .btn-e{background:#6c3483;color:#fff}
-  .btn-e.active{background:var(--edit);box-shadow:0 0 10px var(--edit)}
-  .option-box{display:flex;align-items:center;gap:10px;padding:0 12px;border-left:1px solid rgba(255,255,255,0.1)}
-  .option-item{display:flex;align-items:center;gap:5px;font-size:0.75rem;color:#aaa}
-  select,input{background:var(--primary);color:var(--text);border:1px solid #2c5282;border-radius:4px;padding:3px 6px;font-size:0.75rem;outline:none}
+  .btn{padding:6px 14px;border:none;border-radius:6px;cursor:pointer;font-size:0.82rem;font-weight:600;transition:all 0.2s;display:flex;align-items:center;gap:6px;white-space:nowrap}
+  .btn-p{background:var(--primary);color:#fff}.btn-p:hover{background:#1a5276}
+  .btn-s{background:#1e8449;color:#fff}.btn-s:hover{background:#27ae60}
+  .btn-print{background:#2980b9;color:#fff}.btn-print:hover{background:#3498db}
+  .btn-e{background:#6c3483;color:#fff}.btn-e.active{background:var(--edit);box-shadow:0 0 10px var(--edit)}
   #main{display:flex;flex:1;overflow:hidden}
-  .panel{display:flex;flex-direction:column;position:relative}
-  #editor-panel{width:45%;border-right:1px solid var(--primary)}
-  #preview-panel{flex:1;background:#f0f0f0}
-  .panel-hdr{background:var(--secondary);padding:6px 12px;font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center}
-  textarea{flex:1;background:#0d1b2a;color:#a8d8ea;font-family:'Fira Code','Courier New',monospace;font-size:0.88rem;padding:16px;border:none;resize:none;outline:none;line-height:1.6}
+  .panel{display:flex;flex-direction:column;width:50%}
+  #editor-panel{border-right:1px solid var(--primary)}
+  #preview-panel{background:#fff;color:#000}
+  .panel-hdr{background:var(--secondary);padding:6px 12px;font-size:0.7rem;color:#888;text-transform:uppercase;display:flex;justify-content:space-between}
+  textarea{flex:1;background:#0d1b2a;color:#a8d8ea;font-family:monospace;font-size:0.9rem;padding:16px;border:none;resize:none;outline:none;line-height:1.5}
   iframe{flex:1;border:none;background:#fff}
-  #status{background:var(--primary);padding:4px 16px;font-size:0.75rem;color:#7fb3d3;border-top:1px solid #1a5276;display:flex;justify-content:space-between}
-  .badge-edit{background:var(--edit);color:white;padding:1px 6px;border-radius:4px;font-size:0.65rem;font-weight:bold}
+  #status{background:var(--primary);padding:4px 16px;font-size:0.75rem;color:#7fb3d3;display:flex;justify-content:space-between}
 </style>
 </head>
 <body>
@@ -41,19 +36,17 @@
   <div class="brand"><h1>Editor Ultimate</h1></div>
   <div class="btn-group">
     <button class="btn btn-p" onclick="update()">▶ 更新</button>
-    <button class="btn btn-e" id="ebtn" onclick="toggleEdit()">✏️ 直接改字：關</button>
-    <button class="btn btn-w" onclick="sync()">⟳ 同步</button>
+    <button class="btn btn-e" id="ebtn" onclick="toggleEdit()">✏️ 直接改字</button>
   </div>
-  <div class="option-box">
-    <div class="option-item"><label>紙張</label><select id="ps"><option value="a4">A4</option><option value="letter">Letter</option></select></div>
-    <div class="option-item"><label>方向</label><select id="ori"><option value="portrait">直向</option><option value="landscape">橫向</option></select></div>
-    <button class="btn btn-s" onclick="pdf()">⬇ 匯出 PDF</button>
+  <div class="btn-group">
+    <button class="btn btn-print" onclick="printView()">🖨 瀏覽器列印</button>
+    <button class="btn btn-s" onclick="exportJS()">⬇ html2pdf 匯出</button>
   </div>
 </div>
 <div id="main">
   <div class="panel" id="editor-panel">
-    <div class="panel-hdr"><span>HTML Source</span></div>
-    <textarea id="code" oninput="live()" spellcheck="false"></textarea>
+    <div class="panel-hdr"><span>HTML / LaTeX Source</span></div>
+    <textarea id="code" oninput="live()"></textarea>
   </div>
   <div class="panel" id="preview-panel">
     <div class="panel-hdr"><span>Live Preview</span><div id="emode"></div></div>
@@ -66,99 +59,60 @@
   const $ = id => document.getElementById(id);
 
   function msg(t){ $('stxt').innerText = t; $('ts').innerText = new Date().toLocaleTimeString(); }
-
   function live(){ clearTimeout(lt); lt = setTimeout(update, 500); }
 
   function update(){
     const html = $('code').value;
     const f = $('view');
-    f.srcdoc = html;
-    f.onload = () => { if(em) apply(); msg('Preview Updated'); };
+    // 注入 KaTeX 渲染邏輯到 iframe
+    const template = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"><\\/script>
+        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"><\\/script>
+        <style>body{margin:20px;font-family:sans-serif;} @media print { body{margin:0;} }</style>
+      </head>
+      <body>${html}</body>
+      </html>
+    `;
+    f.srcdoc = template;
+    f.onload = () => { if(em) apply(); msg('Preview Updated (with LaTeX Support)'); };
   }
 
   function apply(){
-    try {
-      const doc = $('view').contentDocument;
-      if(!doc) return;
-      const tags = 'h1,h2,h3,h4,h5,h6,p,li,td,th,span,div,a,button,label,caption,blockquote'.split(',');
-      tags.forEach(t => {
-        doc.querySelectorAll(t).forEach(el => {
-          el.contentEditable = true;
-          el.style.outline = '2px dashed #9b59b6';
-          el.style.cursor = 'text';
-        });
-      });
-      msg('Edit Mode Active - Click text to modify');
-    } catch(e) { msg('Error: ' + e.message); }
-  }
-
-  function remove(){
-    try {
-      const doc = $('view').contentDocument;
-      if(!doc) return;
-      doc.querySelectorAll('[contenteditable]').forEach(el => {
-        el.contentEditable = false;
-        el.style.outline = '';
-        el.style.cursor = '';
-      });
-    } catch(e){}
+    const doc = $('view').contentDocument;
+    if(!doc) return;
+    doc.querySelectorAll('h1,h2,h3,p,li,td,span,div').forEach(el => {
+      el.contentEditable = true; el.style.outline = '1px dashed #9b59b6';
+    });
   }
 
   function toggleEdit(){
     em = !em;
-    $('ebtn').innerText = em ? '✏️ 直接改字：開' : '✏️ 直接改字：關';
     $('ebtn').classList.toggle('active', em);
-    $('emode').innerHTML = em ? '<span class="badge-edit">EDITING</span>' : '';
-    em ? apply() : remove();
+    update();
   }
 
-  function sync(){
-    try {
-      const body = $('view').contentDocument.body;
-      if(!body) return;
-      $('code').value = body.innerHTML;
-      msg('Synced changes back to source');
-    } catch(e){ msg('Sync Failed: ' + e.message); }
+  function printView(){
+    const f = $('view');
+    f.contentWindow.focus();
+    f.contentWindow.print();
+    msg('Browser Print Triggered');
   }
 
-  function pdf(){
+  function exportJS(){
     const doc = $('view').contentDocument;
-    if(!doc || !doc.body) return;
-    msg('Generating PDF...');
-    const opt = {
-      margin: 10,
-      filename: 'export.pdf',
-      image: { type:'jpeg', quality:0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit:'mm', format: $('ps').value, orientation: $('ori').value }
-    };
-    html2pdf().set(opt).from(doc.body).save().then(()=>msg('PDF Exported')).catch(e=>msg('PDF Failed: '+e.message));
+    msg('Generating via html2pdf...');
+    html2pdf().from(doc.body).set({ margin:10, filename:'export.pdf', html2canvas:{scale:2} }).save().then(()=>msg('Done'));
   }
 
   window.onload = () => {
-    $('code').value = `<html>
-<head>
-<style>
-  body{padding:40px;font-family:system-ui;color:#333;max-width:800px;margin:auto;line-height:1.6}
-  h1{color:#0f3460;border-bottom:2px solid #e94560;padding-bottom:10px;margin-bottom:20px}
-  .card{background:#f8f9fa;border-radius:12px;padding:24px;border:1px solid #dee2e6;margin:20px 0}
-  .tag{background:#e94560;color:white;padding:2px 8px;border-radius:4px;font-size:0.8rem;font-weight:bold}
-</style>
-</head>
-<body>
-  <h1>HTML Editor Ultimate</h1>
-  <p>這是在 GitHub Pages 上運行的最終穩定版。你可以在此編輯 HTML 並即時預覽。</p>
-  <div class="card">
-    <span class="tag">PRO TIP</span>
-    <p style="margin-top:10px">開啟<b>「直接改字」</b>後，右邊預覽內的文字會出現紫色虛線，直接點擊即可修改內容。</p>
-  </div>
-  <ul>
-    <li>支援 A4/Letter PDF 匯出</li>
-    <li>自動同步回原始碼</li>
-    <li>深色模式編輯介面</li>
-  </ul>
-</body>
-</html>`;
+    $('code').value = '<h1>數學公式測試</h1>\
+<p>這是行內公式：$E=mc^2$</p>\
+<p>這是獨立區塊公式：</p>\
+$$x = \\\\frac{-b \\\\pm \\\\sqrt{b^2 - 4ac}}{2a}$$';
     update();
   };
 </script>
