@@ -391,6 +391,7 @@
     }
 
     function injectEditorBridge(html) {
+      const initialState = editableMode ? 'true' : 'false';
       const bridge = `
 <style>
   [data-live-editable="true"] { outline: 2px dashed rgba(1, 105, 111, .18); outline-offset: 2px; cursor: text; }
@@ -440,6 +441,7 @@
     function scheduleRender() {
       updateStats();
       if (!livePreview) return;
+      if (editableMode) return; // 直接改字模式中，不自動重渲染
       window.clearTimeout(renderTimer);
       renderTimer = window.setTimeout(renderPreview, 260);
     }
@@ -449,9 +451,20 @@
       editableToggle.textContent = `直接改字：${enabled ? '開' : '關'}`;
       editableToggle.classList.toggle('active', enabled);
       editInfo.textContent = enabled ? '目前可直接點擊文字修改' : '目前只讀';
-      try {
-        previewFrame.contentWindow.postMessage({ type: 'SET_EDITABLE', value: enabled }, '*');
-      } catch (e) {}
+      
+      // 修復：確保 iframe 已完全就緒再 postMessage
+      const doPost = () => {
+        try {
+          previewFrame.contentWindow.postMessage({ type: 'SET_EDITABLE', value: enabled }, '*');
+        } catch (e) {}
+      };
+      
+      if (previewFrame.contentDocument?.readyState === 'complete') {
+        doPost();
+      } else {
+        previewFrame.addEventListener('load', doPost, { once: true });
+      }
+      
       setStatus(enabled ? '已啟用直接改字模式' : '已關閉直接改字模式');
     }
 
