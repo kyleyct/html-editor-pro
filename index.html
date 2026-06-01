@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HTML Editor Pro</title>
   <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&f[]=cabinet-grotesk@500,700,800&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+  <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script> -->
   <style>
     :root, [data-theme="light"] {
       --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
@@ -302,7 +302,8 @@
             <span id="editInfo">目前只讀</span>
           </div>
           <div class="frame-wrap">
-            <iframe id="previewFrame" title="HTML 預覽區" sandbox="allow-scripts allow-modals"></iframe>
+            <!-- 這裡加入了 allow-downloads 和 allow-popups 權限 -->
+            <iframe id="previewFrame" title="HTML 預覽區" sandbox="allow-scripts allow-modals allow-same-origin allow-downloads allow-popups"></iframe>
           </div>
         </div>
       </section>
@@ -342,6 +343,7 @@
     .card h3 { margin-top: 0; color: #0f766e; }
     .cta { margin-top: 28px; padding: 18px 22px; background: #ecfeff; border-radius: 14px; border: 1px solid #a5f3fc; }
     .footer { padding: 20px 40px 36px; color: #4b5563; font-size: 14px; }
+    .download-btn { display: inline-block; margin-top: 15px; padding: 10px 20px; background: #0f766e; color: white; text-decoration: none; border-radius: 8px; }
     @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } .hero, .content, .footer { padding-inline: 22px; } }
   </style>
 </head>
@@ -366,7 +368,9 @@
       <div class="cta">
         <strong>日期：</strong> 2026 年 5 月 18 日<br>
         <strong>時間：</strong> 下午 3:00 - 4:30<br>
-        <strong>地點：</strong> 香港九龍灣創意學習中心
+        <strong>地點：</strong> 香港九龍灣創意學習中心<br>
+        <!-- 這裡加入一個測試下載的按鈕 -->
+        <a href="data:text/plain;charset=utf-8,這是一個測試下載的檔案內容。" download="test.txt" class="download-btn">測試下載功能</a>
       </div>
     </section>
     <div class="footer">可直接點擊標題或段落修改文字，再同步回 HTML。</div>
@@ -391,7 +395,6 @@
     }
 
     function injectEditorBridge(html) {
-      const initialState = editableMode ? 'true' : 'false';
       const bridge = `
 <style>
   [data-live-editable="true"] { outline: 2px dashed rgba(1, 105, 111, .18); outline-offset: 2px; cursor: text; }
@@ -400,21 +403,32 @@
 <script>
 (function(){
   function markEditable(enabled){
-    const selectors = 'h1,h2,h3,h4,h5,h6,p,span,li,a,button,td,th,figcaption,blockquote,label,strong,em';
-    document.querySelectorAll(selectors).forEach(el => {
-      if (enabled) {
-        if (!el.closest('script,style')) {
-          el.setAttribute('contenteditable','true');
-          el.setAttribute('data-live-editable','true');
+    if (enabled) {
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+      const elements = new Set();
+      let node;
+      
+      while (node = walker.nextNode()) {
+        if (node.nodeValue.trim() !== '') {
+          elements.add(node.parentElement);
         }
-      } else {
+      }
+      
+      elements.forEach(el => {
+        if (el && !el.closest('script, style, svg, iframe, noscript')) {
+          el.setAttribute('contenteditable', 'true');
+          el.setAttribute('data-live-editable', 'true');
+        }
+      });
+    } else {
+      document.querySelectorAll('[data-live-editable]').forEach(el => {
         el.removeAttribute('contenteditable');
         el.removeAttribute('data-live-editable');
-      }
-    });
+      });
+    }
   }
   window.enableLiveTextEdit = function(enabled){ markEditable(!!enabled); };
-  window.getEditedHtml = function(){ return '<!DOCTYPE html>\n' + document.documentElement.outerHTML; };
+  window.getEditedHtml = function(){ return '<!DOCTYPE html>\\n' + document.documentElement.outerHTML; };
   window.addEventListener('message', (event) => {
     if (!event.data || !event.data.type) return;
     if (event.data.type === 'SET_EDITABLE') markEditable(event.data.value);
@@ -441,7 +455,7 @@
     function scheduleRender() {
       updateStats();
       if (!livePreview) return;
-      if (editableMode) return; // 直接改字模式中，不自動重渲染
+      if (editableMode) return;
       window.clearTimeout(renderTimer);
       renderTimer = window.setTimeout(renderPreview, 260);
     }
@@ -452,17 +466,22 @@
       editableToggle.classList.toggle('active', enabled);
       editInfo.textContent = enabled ? '目前可直接點擊文字修改' : '目前只讀';
       
-      // 修復：確保 iframe 已完全就緒再 postMessage
       const doPost = () => {
         try {
           previewFrame.contentWindow.postMessage({ type: 'SET_EDITABLE', value: enabled }, '*');
-        } catch (e) {}
+        } catch (e) {
+          console.error("無法發送訊息至 iframe:", e);
+        }
       };
       
-      if (previewFrame.contentDocument?.readyState === 'complete') {
-        doPost();
-      } else {
-        previewFrame.addEventListener('load', doPost, { once: true });
+      try {
+        if (previewFrame.contentDocument?.readyState === 'complete') {
+          doPost();
+        } else {
+          previewFrame.addEventListener('load', doPost, { once: true });
+        }
+      } catch (e) {
+        console.error("無法存取 iframe 內容:", e);
       }
       
       setStatus(enabled ? '已啟用直接改字模式' : '已關閉直接改字模式');
@@ -477,6 +496,7 @@
         setStatus('已同步修改內容回 HTML');
       } catch (error) {
         setStatus('同步失敗', 'error');
+        console.error(error);
       }
     }
 
@@ -487,35 +507,80 @@
         .trim();
     }
 
-    async function exportPdf() {
-      const body = previewFrame.contentDocument?.body;
-      if (!body) {
-        setStatus('預覽尚未載入完成', 'warn');
-        return;
-      }
-      setStatus('正在匯出 PDF，請稍候…');
-      const format = document.getElementById('pageFormat').value;
-      const orientation = document.getElementById('orientation').value;
-      const margin = Number(document.getElementById('margin').value);
-      const scale = Number(document.getElementById('scale').value);
-      const wrapper = document.createElement('div');
-      wrapper.style.background = '#ffffff';
-      wrapper.style.padding = '0';
-      wrapper.appendChild(body.cloneNode(true));
-      try {
-        await html2pdf().set({
-          margin: [margin, margin, margin, margin],
-          filename: `html-editor-export-${new Date().toISOString().slice(0,10)}.pdf`,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale, useCORS: true, backgroundColor: '#ffffff' },
-          jsPDF: { unit: 'mm', format, orientation },
-          pagebreak: { mode: ['css', 'legacy', 'avoid-all'] }
-        }).from(wrapper).save();
-        setStatus('PDF 匯出完成');
-      } catch (error) {
-        setStatus('PDF 匯出失敗', 'error');
-      }
+    function exportPdf() {
+        try {
+          const srcDoc = previewFrame.srcdoc;
+          if (!srcDoc) { setStatus('預覽尚未載入完成', 'warn'); return; }
+
+          const format = document.getElementById('pageFormat').value;
+          const orientation = document.getElementById('orientation').value;
+          const margin = document.getElementById('margin').value;
+
+          // 換算 margin（mm）
+          const marginMap = { '8': '8mm', '12': '12mm', '18': '18mm' };
+          const marginVal = marginMap[margin] || '12mm';
+
+          // 紙張尺寸對應
+          const formatMap = { 'a4': 'A4', 'letter': 'letter', 'legal': 'legal' };
+          const paperSize = formatMap[format] || 'A4';
+
+          // 注入列印用 CSS，覆蓋原有 @media print，並自動觸發列印對話框
+          const printStyle = `
+<style id="__print_override__">
+  @media print {
+    @page {
+      size: ${paperSize} ${orientation === 'landscape' ? 'landscape' : 'portrait'};
+      margin: ${marginVal};
     }
+    body {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+  }
+</style>`;
+
+          // 把列印 CSS 和自動列印腳本注入到 srcdoc 的 </head> 前
+          const printScript = `<script>
+      window.addEventListener('load', function() {
+        window.print();
+      });
+    <\/script>`;
+
+          let printHtml = srcDoc;
+
+          // 移除之前 injectEditorBridge 注入的橋接腳本和樣式（避免干擾）
+          printHtml = printHtml.replace(/<style id="__print_override__">[\s\S]*?<\/style>/g, '');
+
+          // 注入列印樣式到 </head> 前
+          if (/<\/head>/i.test(printHtml)) {
+            printHtml = printHtml.replace(/<\/head>/i, `${printStyle}</head>`);
+          } else {
+            printHtml = printStyle + printHtml;
+          }
+
+          // 注入自動列印腳本到 </body> 前
+          if (/<\/body>/i.test(printHtml)) {
+            printHtml = printHtml.replace(/<\/body>/i, `${printScript}</body>`);
+          } else {
+            printHtml += printScript;
+          }
+
+          // 開新分頁並寫入 HTML
+          const printTab = window.open('', '_blank');
+          if (!printTab) {
+            setStatus('請允許彈出視窗以使用列印功能', 'warn');
+            return;
+          }
+          printTab.document.open();
+          printTab.document.write(printHtml);
+          printTab.document.close();
+
+          setStatus('已開啟列印視窗');
+        } catch (error) {
+          setStatus('開啟列印失敗', 'error');
+          console.error(error);
+        }
+      }
 
     document.getElementById('loadDemo').addEventListener('click', () => {
       htmlInput.value = demoHtml;
