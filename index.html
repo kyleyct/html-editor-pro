@@ -727,14 +727,6 @@
 
     document.getElementById('saveUrl').addEventListener('click', saveToUrl);
 
-    // ─── 頁面載入時，優先從 URL 載入，否則載入 Demo ──────────
-    const loadedFromUrl = loadFromUrl();
-    if (!loadedFromUrl) {
-      htmlInput.value = demoHtml;
-      updateStats();
-      renderPreview();
-    }
-
     previewFrame.addEventListener('load', () => {
       if (editableMode) setEditableMode(true);
     });
