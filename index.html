@@ -512,28 +512,27 @@
 
     function saveToUrl() {
       try {
-        const html = htmlInput.value.trim();
-        if (!html) {
-          setStatus('沒有內容可儲存', 'warn');
+        // ✅ 檢查原始內容大小
+        const byteSize = new Blob([htmlInput.value]).size;
+        if (byteSize > 200 * 1024) {
+          const kb = (byteSize / 1024).toFixed(1);
+          alert(`內容太大（${kb} KB），超過 200 KB 限制，無法儲存為連結。\n建議精簡 HTML 內容後再試。`);
+          setStatus(`內容過大（${kb} KB）`, 'warn');
           return;
         }
     
-        // LZ 壓縮 + Base64
-        const compressed = LZString.compressToEncodedURIComponent(html);
-        const newUrl = `${location.origin}${location.pathname}#${compressed}`;
-    
-        // 更新 URL（不重新整理頁面）
-        history.replaceState(null, '', newUrl);
-    
-        // 複製 URL 到剪貼簿
-        navigator.clipboard.writeText(newUrl).then(() => {
-          setStatus('已儲存！連結已複製到剪貼簿 ✓');
-        }).catch(() => {
-          setStatus('已儲存至 URL！可複製網址分享');
+        const compressed = LZString.compressToEncodedURIComponent(htmlInput.value);
+        const url = location.origin + location.pathname + '?c=' + compressed;
+        if (url.length > 20000) {
+          setStatus('壓縮後仍太長，無法儲存為連結', 'warn');
+          return;
+        }
+        navigator.clipboard.writeText(url).then(() => {
+          setStatus('🔗 連結已複製到剪貼板！');
         });
-    
-      } catch (err) {
-        setStatus('儲存失敗：' + err.message, 'error');
+        history.replaceState(null, '', '?c=' + compressed);
+      } catch (e) {
+        setStatus('儲存連結失敗', 'error');
       }
     }
 
