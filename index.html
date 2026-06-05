@@ -6,7 +6,6 @@
   <title>HTML Editor Pro</title>
   <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&f[]=cabinet-grotesk@500,700,800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
-  <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script> -->
   <style>
     :root, [data-theme="light"] {
       --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
@@ -240,8 +239,7 @@
         <button class="btn btn-ghost" id="editableToggle" type="button">直接改字：關</button>
         <button class="btn" id="syncBack" type="button">同步回 HTML</button>
         <button class="btn" id="copyHtml" type="button">複製 HTML</button>
-        <button id="saveUrl" class="btn btn-ghost">儲存連結</button>
-
+        <button id="saveUrl" class="btn btn-ghost" type="button">儲存連結</button>
       </div>
       <div class="toolbar-group">
         <label class="sr-only" for="pageFormat">紙張尺寸</label>
@@ -305,7 +303,6 @@
             <span id="editInfo">目前只讀</span>
           </div>
           <div class="frame-wrap">
-            <!-- 這裡加入了 allow-downloads 和 allow-popups 權限 -->
             <iframe id="previewFrame" title="HTML 預覽區" sandbox="allow-scripts allow-modals allow-same-origin allow-downloads allow-popups"></iframe>
           </div>
         </div>
@@ -372,7 +369,6 @@
         <strong>日期：</strong> 2026 年 5 月 18 日<br>
         <strong>時間：</strong> 下午 3:00 - 4:30<br>
         <strong>地點：</strong> 香港九龍灣創意學習中心<br>
-        <!-- 這裡加入一個測試下載的按鈕 -->
         <a href="data:text/plain;charset=utf-8,這是一個測試下載的檔案內容。" download="test.txt" class="download-btn">測試下載功能</a>
       </div>
     </section>
@@ -410,13 +406,9 @@
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
       const elements = new Set();
       let node;
-      
       while (node = walker.nextNode()) {
-        if (node.nodeValue.trim() !== '') {
-          elements.add(node.parentElement);
-        }
+        if (node.nodeValue.trim() !== '') elements.add(node.parentElement);
       }
-      
       elements.forEach(el => {
         if (el && !el.closest('script, style, svg, iframe, noscript')) {
           el.setAttribute('contenteditable', 'true');
@@ -457,6 +449,14 @@
 
     function scheduleRender() {
       updateStats();
+
+      // 自動儲存草稿（在某些沙盒環境可能不可用）
+      try {
+        localStorage.setItem('html-editor-pro:draft', htmlInput.value);
+      } catch (e) {
+        // ignore
+      }
+
       if (!livePreview) return;
       if (editableMode) return;
       window.clearTimeout(renderTimer);
@@ -468,7 +468,7 @@
       editableToggle.textContent = `直接改字：${enabled ? '開' : '關'}`;
       editableToggle.classList.toggle('active', enabled);
       editInfo.textContent = enabled ? '目前可直接點擊文字修改' : '目前只讀';
-      
+
       const doPost = () => {
         try {
           previewFrame.contentWindow.postMessage({ type: 'SET_EDITABLE', value: enabled }, '*');
@@ -476,7 +476,7 @@
           console.error("無法發送訊息至 iframe:", e);
         }
       };
-      
+
       try {
         if (previewFrame.contentDocument?.readyState === 'complete') {
           doPost();
@@ -486,7 +486,7 @@
       } catch (e) {
         console.error("無法存取 iframe 內容:", e);
       }
-      
+
       setStatus(enabled ? '已啟用直接改字模式' : '已關閉直接改字模式');
     }
 
@@ -504,121 +504,96 @@
     }
 
     function simpleBeautify(html) {
-      return html
-        .replace(/></g, '>\n<')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim();
+      return html.replace(/></g, '>\n<').replace(/\n{3,}/g, '\n\n').trim();
     }
 
+    // ✅ 正確做法：存到 query 的 c 參數，使用 URL/searchParams，避免 + 編碼問題
     function saveToUrl() {
       try {
-        // ✅ 檢查原始內容大小
         const byteSize = new Blob([htmlInput.value]).size;
         if (byteSize > 200 * 1024) {
           const kb = (byteSize / 1024).toFixed(1);
-          alert(`內容太大（${kb} KB），超過 200 KB 限制，無法儲存為連結。\n建議精簡 HTML 內容後再試。`);
-          setStatus(`內容過大（${kb} KB）`, 'warn');
+          setStatus(`內容太大（${kb} KB），超過 200 KB 限制`, 'warn');
           return;
         }
-    
+
         const compressed = LZString.compressToEncodedURIComponent(htmlInput.value);
-        const url = location.origin + location.pathname + '?c=' + compressed;
-        if (url.length > 20000) {
+        const urlObj = new URL(location.href);
+        urlObj.searchParams.set('c', compressed);
+        urlObj.hash = '';
+
+        const finalUrl = urlObj.toString();
+        if (finalUrl.length > 20000) {
           setStatus('壓縮後仍太長，無法儲存為連結', 'warn');
           return;
         }
-        navigator.clipboard.writeText(url).then(() => {
-          setStatus('🔗 連結已複製到剪貼板！');
-        });
-        history.replaceState(null, '', '?c=' + compressed);
+
+        navigator.clipboard.writeText(finalUrl)
+          .then(() => setStatus('🔗 連結已複製到剪貼簿'))
+          .catch(() => setStatus('連結已產生（剪貼簿權限被拒）', 'warn'));
+
+        history.replaceState(null, '', urlObj.pathname + urlObj.search);
       } catch (e) {
+        console.error(e);
         setStatus('儲存連結失敗', 'error');
       }
     }
 
-    // 從 URL Hash 載入 HTML
+    // ✅ 正確讀取：優先 query ?c=，兼容舊 hash 格式
     function loadFromUrl() {
       try {
-        const hash = location.hash.slice(1); // 去掉 #
-        if (!hash) return false;
-    
-        const decompressed = LZString.decompressFromEncodedURIComponent(hash);
+        let payload = null;
+
+        // 1) query: ?c=...
+        const params = new URLSearchParams(location.search);
+        payload = params.get('c');
+
+        // 2) fallback: #<payload> 或 #c=<payload>
+        if (!payload && location.hash) {
+          const rawHash = location.hash.slice(1);
+          if (rawHash.startsWith('c=')) payload = rawHash.slice(2);
+          else payload = rawHash;
+        }
+
+        if (!payload) return false;
+
+        // 容錯：若 + 被轉成空白，補回
+        payload = payload.replace(/ /g, '+');
+
+        const decompressed = LZString.decompressFromEncodedURIComponent(payload);
         if (!decompressed) return false;
-    
+
         htmlInput.value = decompressed;
         updateStats();
         renderPreview();
         setStatus('已從 URL 載入內容');
         return true;
-    
       } catch (err) {
         console.error('loadFromUrl error:', err);
         return false;
       }
     }
 
-    // 自動儲存（在 scheduleRender 中加入）
-    function scheduleRender() {
-      updateStats();
-    
-      // 自動儲存到 LocalStorage
-      localStorage.setItem('html-editor-pro:draft', htmlInput.value);
-    
-      if (!livePreview) return;
-      if (editableMode) return;
-      window.clearTimeout(renderTimer);
-      renderTimer = window.setTimeout(renderPreview, 260);
-    }
-    
-    // 頁面載入優先級：URL Hash > LocalStorage > Demo
-    function initContent() {
-      // 1. 優先從 URL Hash 載入
-      if (loadFromUrl()) return;
-    
-      // 2. 其次從 LocalStorage 載入上次草稿
-      const draft = localStorage.getItem('html-editor-pro:draft');
-      if (draft && draft.trim()) {
-        htmlInput.value = draft;
-        updateStats();
-        renderPreview();
-        setStatus('已恢復上次的草稿');
-        return;
-      }
-      
-
-      // 3. 最後載入 Demo
-      htmlInput.value = demoHtml;
-      updateStats();
-      renderPreview();
-    }
-    
-    // 啟動時呼叫
-    initContent();
-        
-    // 清除 URL Hash
     function clearUrl() {
-      history.replaceState(null, '', `${location.origin}${location.pathname}`);
+      history.replaceState(null, '', location.pathname);
     }
 
     function exportPdf() {
-        try {
-          const srcDoc = previewFrame.srcdoc;
-          if (!srcDoc) { setStatus('預覽尚未載入完成', 'warn'); return; }
+      try {
+        const srcDoc = previewFrame.srcdoc;
+        if (!srcDoc) { setStatus('預覽尚未載入完成', 'warn'); return; }
 
-          const format = document.getElementById('pageFormat').value;
-          const orientation = document.getElementById('orientation').value;
-          const margin = document.getElementById('margin').value;
+        const format = document.getElementById('pageFormat').value;
+        const orientation = document.getElementById('orientation').value;
+        const margin = document.getElementById('margin').value;
 
-          // 換算 margin（mm）
-          const marginMap = { '8': '8mm', '12': '12mm', '18': '18mm' };
-          const marginVal = marginMap[margin] || '12mm';
+        const marginMap = { '8': '8mm', '12': '12mm', '18': '18mm' };
+        const marginVal = marginMap[margin] || '12mm';
 
-          // 紙張尺寸對應
-          const formatMap = { 'a4': 'A4', 'letter': 'letter', 'legal': 'legal' };
-          const paperSize = formatMap[format] || 'A4';
+        const formatMap = { 'a4': 'A4', 'letter': 'letter', 'legal': 'legal' };
+        const paperSize = formatMap[format] || 'A4';
 
-          // 注入列印用 CSS，覆蓋原有 @media print，並自動觸發列印對話框
-          const printStyle = `
+        const printStyle = `
 <style id="__print_override__">
   @media print {
     @page {
@@ -632,53 +607,72 @@
   }
 </style>`;
 
-          // 把列印 CSS 和自動列印腳本注入到 srcdoc 的 </head> 前
-          const printScript = `<script>
-      window.addEventListener('load', function() {
-        window.print();
-      });
-    <\/script>`;
+        const printScript = `<script>
+window.addEventListener('load', function() {
+  window.print();
+});
+<\/script>`;
 
-          let printHtml = srcDoc;
+        let printHtml = srcDoc;
+        printHtml = printHtml.replace(/<style id="__print_override__">[\s\S]*?<\/style>/g, '');
 
-          // 移除之前 injectEditorBridge 注入的橋接腳本和樣式（避免干擾）
-          printHtml = printHtml.replace(/<style id="__print_override__">[\s\S]*?<\/style>/g, '');
-
-          // 注入列印樣式到 </head> 前
-          if (/<\/head>/i.test(printHtml)) {
-            printHtml = printHtml.replace(/<\/head>/i, `${printStyle}</head>`);
-          } else {
-            printHtml = printStyle + printHtml;
-          }
-
-          // 注入自動列印腳本到 </body> 前
-          if (/<\/body>/i.test(printHtml)) {
-            printHtml = printHtml.replace(/<\/body>/i, `${printScript}</body>`);
-          } else {
-            printHtml += printScript;
-          }
-
-          // 開新分頁並寫入 HTML
-          const printTab = window.open('', '_blank');
-          if (!printTab) {
-            setStatus('請允許彈出視窗以使用列印功能', 'warn');
-            return;
-          }
-          printTab.document.open();
-          printTab.document.write(printHtml);
-          printTab.document.close();
-
-          setStatus('已開啟列印視窗');
-        } catch (error) {
-          setStatus('開啟列印失敗', 'error');
-          console.error(error);
+        if (/<\/head>/i.test(printHtml)) {
+          printHtml = printHtml.replace(/<\/head>/i, `${printStyle}</head>`);
+        } else {
+          printHtml = printStyle + printHtml;
         }
+
+        if (/<\/body>/i.test(printHtml)) {
+          printHtml = printHtml.replace(/<\/body>/i, `${printScript}</body>`);
+        } else {
+          printHtml += printScript;
+        }
+
+        const printTab = window.open('', '_blank');
+        if (!printTab) {
+          setStatus('請允許彈出視窗以使用列印功能', 'warn');
+          return;
+        }
+        printTab.document.open();
+        printTab.document.write(printHtml);
+        printTab.document.close();
+
+        setStatus('已開啟列印視窗');
+      } catch (error) {
+        setStatus('開啟列印失敗', 'error');
+        console.error(error);
       }
+    }
+
+    function initContent() {
+      // 1. URL
+      if (loadFromUrl()) return;
+
+      // 2. localStorage
+      try {
+        const draft = localStorage.getItem('html-editor-pro:draft');
+        if (draft && draft.trim()) {
+          htmlInput.value = draft;
+          updateStats();
+          renderPreview();
+          setStatus('已恢復上次的草稿');
+          return;
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      // 3. demo
+      htmlInput.value = demoHtml;
+      updateStats();
+      renderPreview();
+    }
 
     document.getElementById('loadDemo').addEventListener('click', () => {
       htmlInput.value = demoHtml;
       updateStats();
       renderPreview();
+      setStatus('已載入示例');
     });
 
     document.getElementById('beautify').addEventListener('click', () => {
@@ -692,10 +686,12 @@
       htmlInput.value = '';
       updateStats();
       renderPreview();
+      clearUrl();
       setStatus('已清空，並重載預設示例', 'warn');
     });
 
     document.getElementById('syncBack').addEventListener('click', syncBackFromPreview);
+
     document.getElementById('copyHtml').addEventListener('click', async () => {
       try {
         await navigator.clipboard.writeText(htmlInput.value);
@@ -705,7 +701,11 @@
       }
     });
 
+    document.getElementById('saveUrl').addEventListener('click', saveToUrl);
+    document.getElementById('exportPdf').addEventListener('click', exportPdf);
+
     editableToggle.addEventListener('click', () => setEditableMode(!editableMode));
+
     livePreviewToggle.addEventListener('click', () => {
       livePreview = !livePreview;
       livePreviewToggle.textContent = `即時預覽：${livePreview ? '開' : '關'}`;
@@ -721,21 +721,14 @@
       themeToggle.textContent = next === 'dark' ? '淺色模式' : '深色模式';
     });
 
-    document.getElementById('exportPdf').addEventListener('click', exportPdf);
     htmlInput.addEventListener('input', scheduleRender);
-
-    document.getElementById('saveUrl').addEventListener('click', saveToUrl);
 
     previewFrame.addEventListener('load', () => {
       if (editableMode) setEditableMode(true);
     });
 
-    const loadedFromUrl = loadFromUrl();
-    if (!loadedFromUrl) {
-      htmlInput.value = demoHtml;
-      updateStats();
-      renderPreview();
-    }
+    // 單一初始化入口
+    initContent();
   </script>
 </body>
 </html>
