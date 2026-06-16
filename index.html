@@ -509,35 +509,58 @@
 
     // ✅ 正確做法：存到 query 的 c 參數，使用 URL/searchParams，避免 + 編碼問題
     function saveToUrl() {
-      try {
-        const byteSize = new Blob([htmlInput.value]).size;
-        if (byteSize > 200 * 1024) {
-          const kb = (byteSize / 1024).toFixed(1);
-          setStatus(`內容太大（${kb} KB），超過 200 KB 限制`, 'warn');
-          return;
-        }
-
-        const compressed = LZString.compressToEncodedURIComponent(htmlInput.value);
-        const urlObj = new URL(location.href);
-        urlObj.searchParams.set('c', compressed);
-        urlObj.hash = '';
-
-        const finalUrl = urlObj.toString();
-        if (finalUrl.length > 20000) {
-          setStatus('壓縮後仍太長，無法儲存為連結', 'warn');
-          return;
-        }
-
-        navigator.clipboard.writeText(finalUrl)
-          .then(() => setStatus('🔗 連結已複製到剪貼簿'))
-          .catch(() => setStatus('連結已產生（剪貼簿權限被拒）', 'warn'));
-
-        history.replaceState(null, '', urlObj.pathname + urlObj.search);
-      } catch (e) {
-        console.error(e);
-        setStatus('儲存連結失敗', 'error');
-      }
+  try {
+    // ── 第一關：檢查原始內容大小 ──────────────────────────
+    const byteSize = new Blob([htmlInput.value]).size;
+    if (byteSize > 200 * 1024) {
+      const kb = (byteSize / 1024).toFixed(1);
+      setStatus(`內容太大（${kb} KB），超過 200 KB 限制`, 'warn');
+      alert(`內容太大（${kb} KB），超過 200 KB 限制，無法儲存為連結。\n建議精簡 HTML 內容後再試。`);
+      return;
     }
+
+    // ── 第二關：壓縮並檢查 URL 長度 ────────────────────────
+    const compressed = LZString.compressToEncodedURIComponent(htmlInput.value);
+
+    // 只計算 ?c= 參數本身的長度（更精確）
+    const paramLength = compressed.length;
+
+    // 保守上限：6,000 字元（相容大多數伺服器與瀏覽器）
+    if (paramLength > 6000) {
+      const kb = (byteSize / 1024).toFixed(1);
+      setStatus(`壓縮後仍太長（${paramLength} 字元），建議精簡內容`, 'warn');
+      alert(
+        `壓縮後的 URL 參數長度為 ${paramLength} 字元，超過安全上限（6,000）。\n` +
+        `原始內容約 ${kb} KB。\n\n` +
+        `建議：\n` +
+        `• 移除不必要的空白與註解\n` +
+        `• 使用「整理格式」功能壓縮代碼\n` +
+        `• 或改用「複製 HTML」手動儲存`
+      );
+      return;
+    }
+
+    // ── 第三關：產生並複製 URL ──────────────────────────────
+    const urlObj = new URL(location.href);
+    urlObj.searchParams.set('c', compressed);
+    urlObj.hash = '';
+    const finalUrl = urlObj.toString();
+
+    navigator.clipboard.writeText(finalUrl)
+      .then(() => setStatus(`🔗 連結已複製（${paramLength} 字元）`))
+      .catch(() => {
+        // 剪貼簿失敗時，顯示 URL 讓用戶手動複製
+        prompt('請手動複製以下連結：', finalUrl);
+        setStatus('連結已產生（請手動複製）', 'warn');
+      });
+
+    history.replaceState(null, '', urlObj.pathname + urlObj.search);
+
+  } catch (e) {
+    console.error(e);
+    setStatus('儲存連結失敗', 'error');
+  }
+}
 
     // ✅ 正確讀取：優先 query ?c=，兼容舊 hash 格式
     function loadFromUrl() {
