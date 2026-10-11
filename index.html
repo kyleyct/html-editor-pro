@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HTML Editor Pro</title>
+  <meta name="description" content="給香港老師的純前端 HTML 試卷／教材編輯器：貼上學校 LLM 產出的 HTML／LaTeX，KaTeX 即時預覽，直接改字，列印成 PDF。資料不經伺服器。" />
+  <meta name="author" content="Kyle Yeung" />
+  <meta name="theme-color" content="#01696f" />
+  <title>HTML Editor Pro — 香港校本 HTML／LaTeX 試卷編輯器</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&f[]=cabinet-grotesk@500,700,800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
   <style>
@@ -25,8 +29,8 @@
       --shadow-sm: 0 1px 2px oklch(0.2 0.01 80 / 0.06);
       --shadow-md: 0 8px 24px oklch(0.2 0.01 80 / 0.10);
       --shadow-lg: 0 18px 40px oklch(0.2 0.01 80 / 0.12);
-      --font-body: 'Satoshi', 'Inter', sans-serif;
-      --font-display: 'Cabinet Grotesk', 'Inter', sans-serif;
+      --font-body: 'Satoshi', 'Noto Sans TC', 'PingFang HK', 'Inter', sans-serif;
+      --font-display: 'Cabinet Grotesk', 'Noto Sans TC', 'Inter', sans-serif;
       --transition: 180ms cubic-bezier(0.16, 1, 0.3, 1);
     }
     [data-theme="dark"] {
@@ -55,7 +59,7 @@
     .app {
       min-height: 100vh;
       display: grid;
-      grid-template-rows: auto auto 1fr;
+      grid-template-rows: auto auto 1fr auto;
     }
     .topbar {
       display: flex;
@@ -196,13 +200,28 @@
     .sr-only {
       position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); border: 0;
     }
+    .site-footer {
+      padding: var(--space-3) var(--space-5);
+      border-top: 1px solid color-mix(in oklab, var(--color-text) 10%, transparent);
+      background: var(--color-surface-2);
+      color: var(--color-text-muted);
+      font-size: var(--text-sm);
+      display: flex; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap;
+      align-items: center;
+    }
+    .site-footer a { color: var(--color-primary); }
+    .banner-note {
+      font-size: var(--text-xs);
+      color: var(--color-text-faint);
+      max-width: 52rem;
+    }
     @media (max-width: 1100px) {
       .main { grid-template-columns: 1fr; }
       textarea { min-height: 340px; }
       iframe { min-height: 620px; }
     }
     @media (max-width: 720px) {
-      .topbar, .toolbar { padding-inline: var(--space-4); }
+      .topbar, .toolbar, .site-footer { padding-inline: var(--space-4); }
       .main { padding: var(--space-3); gap: var(--space-3); }
       .panel-header, .helper, .preview-meta { padding-inline: var(--space-3); }
       .frame-wrap { padding: var(--space-3); }
@@ -223,11 +242,16 @@
         </div>
         <div>
           <h1>HTML Editor Pro</h1>
-          <p>貼上 HTML、即時預覽、直接改字、匯出 PDF</p>
+          <p>貼上 HTML／LaTeX、KaTeX 預覽、直接改字、列印 PDF</p>
         </div>
       </div>
       <div class="top-actions">
         <button class="btn btn-ghost" id="themeToggle" type="button" aria-label="切換深色模式">深色模式</button>
+        <label class="sr-only" for="demoSelect">載入示例</label>
+        <select id="demoSelect" class="select" aria-label="選擇示例">
+          <option value="math">數學練習卷（KaTeX）</option>
+          <option value="poster">活動海報</option>
+        </select>
         <button class="btn" id="loadDemo" type="button">載入示例</button>
         <button class="btn btn-primary" id="exportPdf" type="button">匯出 PDF</button>
       </div>
@@ -240,30 +264,25 @@
         <button class="btn" id="syncBack" type="button">同步回 HTML</button>
         <button class="btn" id="copyHtml" type="button">複製 HTML</button>
         <button id="saveUrl" class="btn btn-ghost" type="button">儲存連結</button>
+        <button id="downloadHtml" class="btn btn-ghost" type="button">下載 .html</button>
       </div>
       <div class="toolbar-group">
         <label class="sr-only" for="pageFormat">紙張尺寸</label>
-        <select id="pageFormat" class="select">
+        <select id="pageFormat" class="select" aria-label="紙張尺寸">
           <option value="a4">A4</option>
           <option value="letter">Letter</option>
           <option value="legal">Legal</option>
         </select>
         <label class="sr-only" for="orientation">方向</label>
-        <select id="orientation" class="select">
+        <select id="orientation" class="select" aria-label="方向">
           <option value="portrait">直向</option>
           <option value="landscape">橫向</option>
         </select>
         <label class="sr-only" for="margin">邊界</label>
-        <select id="margin" class="select">
+        <select id="margin" class="select" aria-label="邊界">
           <option value="8">窄邊界</option>
           <option value="12" selected>標準邊界</option>
           <option value="18">寬邊界</option>
-        </select>
-        <label class="sr-only" for="scale">輸出清晰度</label>
-        <select id="scale" class="select">
-          <option value="1.5">標準清晰度</option>
-          <option value="2" selected>高清晰度</option>
-          <option value="3">超高清晰度</option>
         </select>
       </div>
     </section>
@@ -273,7 +292,7 @@
         <div class="panel-header">
           <div>
             <h2>HTML 原始碼</h2>
-            <p>可貼上完整 HTML，或只貼 body 內容。</p>
+            <p>可貼上完整 HTML，或只貼 body。公式用 $...$ / $$...$$ 或 \(...\) / \[...\]。</p>
           </div>
           <div class="editor-actions">
             <button class="btn" id="beautify" type="button">整理格式</button>
@@ -281,11 +300,11 @@
           </div>
         </div>
         <div class="helper">
-          <span>支援完整文件、inline CSS、簡單版面。</span>
+          <span>支援 KaTeX、inline CSS、校本練習卷版面類別。</span>
           <span id="codeStats">0 字元</span>
         </div>
         <div class="editor-wrap">
-          <textarea id="htmlInput" spellcheck="false"></textarea>
+          <textarea id="htmlInput" spellcheck="false" aria-label="HTML 原始碼"></textarea>
         </div>
       </section>
 
@@ -293,24 +312,37 @@
         <div class="panel-header">
           <div>
             <h2>即時預覽</h2>
-            <p>可切換直接編輯模式，在畫面上改文字。</p>
+            <p>可切換直接編輯模式；公式由 KaTeX 渲染。</p>
           </div>
           <div id="status" class="status">準備就緒</div>
         </div>
         <div class="preview-shell">
           <div class="preview-meta">
-            <span id="previewInfo">預覽會使用 iframe 載入你的 HTML。</span>
+            <span id="previewInfo">預覽會使用沙盒 iframe 載入你的 HTML（已移除 allow-same-origin）。</span>
             <span id="editInfo">目前只讀</span>
           </div>
           <div class="frame-wrap">
-            <iframe id="previewFrame" title="HTML 預覽區" sandbox="allow-scripts allow-modals allow-same-origin allow-downloads allow-popups"></iframe>
+            <iframe id="previewFrame" title="HTML 預覽區" sandbox="allow-scripts allow-modals allow-downloads allow-popups"></iframe>
           </div>
         </div>
       </section>
     </main>
+
+    <footer class="site-footer">
+      <div>
+        <strong>Kyle Yeung</strong>
+        · <a href="https://github.com/kyleyct/html-editor-pro" rel="noopener noreferrer">GitHub</a>
+        · MIT License
+        <p class="banner-note">校本練習卷風格僅供教學參考，非 HKEAA 官方格式；請勿貼上真實公開試題目或使用考試局標誌。</p>
+      </div>
+      <div>資料只存瀏覽器／URL，不經伺服器</div>
+    </footer>
   </div>
 
   <script>
+    const KATEX_VERSION = '0.16.11';
+    const KATEX_CDN = `https://cdn.jsdelivr.net/npm/katex@${KATEX_VERSION}/dist`;
+
     const htmlInput = document.getElementById('htmlInput');
     const previewFrame = document.getElementById('previewFrame');
     const statusEl = document.getElementById('status');
@@ -320,19 +352,21 @@
     const editableToggle = document.getElementById('editableToggle');
     const livePreviewToggle = document.getElementById('livePreviewToggle');
     const themeToggle = document.getElementById('themeToggle');
+    const demoSelect = document.getElementById('demoSelect');
 
     let livePreview = true;
     let editableMode = false;
     let renderTimer = null;
+    let syncWaitTimer = null;
 
-    const demoHtml = `<!DOCTYPE html>
+    const demoPoster = `<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>課程活動海報</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 32px; color: #1f2937; background: #f3f4f6; }
+    body { font-family: "Noto Sans TC", "PingFang HK", Arial, sans-serif; margin: 0; padding: 32px; color: #1f2937; background: #f3f4f6; }
     .sheet { max-width: 860px; margin: 0 auto; background: #fff; border-radius: 18px; overflow: hidden; box-shadow: 0 20px 45px rgba(0,0,0,.08); }
     .hero { background: linear-gradient(135deg, #0f766e, #155e75); color: white; padding: 44px 40px; }
     .hero h1 { margin: 0 0 12px; font-size: 38px; }
@@ -343,7 +377,6 @@
     .card h3 { margin-top: 0; color: #0f766e; }
     .cta { margin-top: 28px; padding: 18px 22px; background: #ecfeff; border-radius: 14px; border: 1px solid #a5f3fc; }
     .footer { padding: 20px 40px 36px; color: #4b5563; font-size: 14px; }
-    .download-btn { display: inline-block; margin-top: 15px; padding: 10px 20px; background: #0f766e; color: white; text-decoration: none; border-radius: 8px; }
     @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } .hero, .content, .footer { padding-inline: 22px; } }
   </style>
 </head>
@@ -368,14 +401,287 @@
       <div class="cta">
         <strong>日期：</strong> 2026 年 5 月 18 日<br>
         <strong>時間：</strong> 下午 3:00 - 4:30<br>
-        <strong>地點：</strong> 香港九龍灣創意學習中心<br>
-        <a href="data:text/plain;charset=utf-8,這是一個測試下載的檔案內容。" download="test.txt" class="download-btn">測試下載功能</a>
+        <strong>地點：</strong> 香港九龍灣創意學習中心
       </div>
     </section>
     <div class="footer">可直接點擊標題或段落修改文字，再同步回 HTML。</div>
   </div>
 </body>
 </html>`;
+
+    const demoMath = `<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>中三數學練習卷（示例）</title>
+  <style>
+    /* DSE-inspired school practice paper — original demo only; not HKEAA format */
+    @page { size: A4; margin: 14mm 16mm; }
+    :root {
+      --ink: #111;
+      --muted: #444;
+      --rule: #222;
+      --light: #666;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      color: var(--ink);
+      background: #e8e8e8;
+      font-family: "Noto Serif TC", "Songti TC", "PMingLiU", "Times New Roman", serif;
+      font-size: 12pt;
+      line-height: 1.55;
+    }
+    .paper {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 12px auto;
+      padding: 14mm 16mm 18mm;
+      background: #fff;
+      box-shadow: 0 4px 24px rgba(0,0,0,.12);
+    }
+    .disclaimer {
+      font-family: "Noto Sans TC", "PingFang HK", sans-serif;
+      font-size: 9pt;
+      color: #666;
+      border: 1px dashed #999;
+      padding: 6px 10px;
+      margin-bottom: 12px;
+      background: #fafafa;
+    }
+    .paper-header {
+      text-align: center;
+      border-bottom: 2px solid var(--rule);
+      padding-bottom: 10px;
+      margin-bottom: 14px;
+    }
+    .school-name {
+      font-size: 16pt;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      margin: 0 0 4px;
+    }
+    .paper-title {
+      font-size: 14pt;
+      font-weight: 700;
+      margin: 6px 0 2px;
+    }
+    .paper-sub {
+      font-size: 11pt;
+      color: var(--muted);
+      margin: 0;
+    }
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      margin-top: 10px;
+      font-size: 11pt;
+      text-align: left;
+    }
+    .meta-row span { white-space: nowrap; }
+    .instructions {
+      margin: 12px 0 16px;
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      font-size: 10.5pt;
+    }
+    .instructions ol { margin: 4px 0 0; padding-left: 1.4em; }
+    .section-title {
+      font-size: 12pt;
+      font-weight: 700;
+      margin: 18px 0 10px;
+      border-bottom: 1px solid #bbb;
+      padding-bottom: 4px;
+    }
+    .q {
+      margin: 0 0 18px;
+      page-break-inside: avoid;
+    }
+    .q-head {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+    .q-no {
+      font-weight: 700;
+      flex: 0 0 2.2em;
+    }
+    .q-body { flex: 1; min-width: 0; }
+    .marks {
+      float: right;
+      font-weight: 700;
+      margin-left: 8px;
+      white-space: nowrap;
+    }
+    .subq { margin: 8px 0 8px 0.5em; }
+    .subq-label { font-weight: 700; margin-right: 6px; }
+    .answer-lines {
+      margin: 10px 0 4px 2.2em;
+    }
+    .answer-lines .line {
+      border-bottom: 1px solid #999;
+      height: 1.7em;
+      margin-bottom: 2px;
+    }
+    .chart-wrap {
+      margin: 10px 0 6px;
+      max-width: 420px;
+    }
+    .chart-wrap svg { width: 100%; height: auto; display: block; }
+    .chart-caption {
+      font-size: 10pt;
+      color: var(--light);
+      text-align: center;
+      margin-top: 4px;
+      font-family: "Noto Sans TC", "PingFang HK", sans-serif;
+    }
+    .end-mark {
+      text-align: center;
+      margin-top: 28px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+    }
+    @media print {
+      body { background: #fff; }
+      .paper { width: auto; min-height: auto; margin: 0; padding: 0; box-shadow: none; }
+      .disclaimer { border-color: #666; }
+    }
+  </style>
+</head>
+<body>
+  <article class="paper">
+    <p class="disclaimer">本卷為「校本練習卷風格」教學示例，方便示範版面與公式渲染。並非香港考試及評核局（HKEAA）官方格式，亦不包含真實公開試題目。請勿使用 HKEAA 標誌或暗示官方認可。</p>
+
+    <header class="paper-header">
+      <p class="school-name">青雲中學</p>
+      <h1 class="paper-title">中三級 數學 練習卷（示例）</h1>
+      <p class="paper-sub">Mathematics Practice Paper — Sample (Original)</p>
+      <div class="meta-row">
+        <span>姓名：________________</span>
+        <span>班別：________</span>
+        <span>學號：________</span>
+        <span>限時：60 分鐘</span>
+        <span>滿分：50</span>
+      </div>
+    </header>
+
+    <section class="instructions">
+      <strong>考生須知</strong>
+      <ol>
+        <li>全卷共 5 題，請將答案寫在指定位置。</li>
+        <li>除特別註明外，數值答案須準確至小數點後兩個位。</li>
+        <li>公式可用 KaTeX 分隔符撰寫，例如 $x^2$ 或 $$\\int_0^1 x\\,dx$$。</li>
+      </ol>
+    </section>
+
+    <h2 class="section-title">甲部　短答題</h2>
+
+    <div class="q">
+      <div class="q-head">
+        <span class="q-no">1.</span>
+        <div class="q-body">
+          <span class="marks">(6 分)</span>
+          化簡下列各式：
+          <div class="subq"><span class="subq-label">(a)</span> $\\dfrac{3}{4}+\\dfrac{5}{6}-\\dfrac{1}{3}$</div>
+          <div class="subq"><span class="subq-label">(b)</span> $\\left(2x^2 y\\right)\\left(-3x y^3\\right)$</div>
+          <div class="answer-lines"><div class="line"></div><div class="line"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="q">
+      <div class="q-head">
+        <span class="q-no">2.</span>
+        <div class="q-body">
+          <span class="marks">(8 分)</span>
+          解下列方程：
+          <div class="subq"><span class="subq-label">(a)</span> $3(2x-1)=x+9$</div>
+          <div class="subq"><span class="subq-label">(b)</span> $x^2-5x+6=0$</div>
+          <div class="answer-lines"><div class="line"></div><div class="line"></div><div class="line"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="section-title">乙部　應用與圖表</h2>
+
+    <div class="q">
+      <div class="q-head">
+        <span class="q-no">3.</span>
+        <div class="q-body">
+          <span class="marks">(10 分)</span>
+          直線 $L$ 的方程為 $y=2x-1$。
+          <div class="subq"><span class="subq-label">(a)</span> 求 $L$ 的斜率及 $y$ 截距。</div>
+          <div class="subq"><span class="subq-label">(b)</span> 若點 $A(k, 5)$ 在 $L$ 上，求 $k$。</div>
+          <div class="subq"><span class="subq-label">(c)</span> 寫出一條與 $L$ 平行、且通過點 $(0, 4)$ 的直線方程。</div>
+          <div class="answer-lines"><div class="line"></div><div class="line"></div><div class="line"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="q">
+      <div class="q-head">
+        <span class="q-no">4.</span>
+        <div class="q-body">
+          <span class="marks">(12 分)</span>
+          下圖顯示某班 30 名學生一星期閱讀時數的長條圖（示例數據，非真實考試資料）。
+          <div class="chart-wrap" aria-label="閱讀時數長條圖">
+            <svg viewBox="0 0 420 220" xmlns="http://www.w3.org/2000/svg" role="img">
+              <rect width="420" height="220" fill="#fff"/>
+              <line x1="50" y1="180" x2="390" y2="180" stroke="#222" stroke-width="1.5"/>
+              <line x1="50" y1="30" x2="50" y2="180" stroke="#222" stroke-width="1.5"/>
+              <text x="12" y="110" font-size="11" fill="#444" transform="rotate(-90 12 110)">人數</text>
+              <rect x="70" y="120" width="40" height="60" fill="#0f766e"/>
+              <rect x="140" y="80" width="40" height="100" fill="#0f766e"/>
+              <rect x="210" y="50" width="40" height="130" fill="#0f766e"/>
+              <rect x="280" y="100" width="40" height="80" fill="#0f766e"/>
+              <rect x="350" y="140" width="40" height="40" fill="#0f766e"/>
+              <text x="78" y="198" font-size="11" fill="#333">0–2</text>
+              <text x="145" y="198" font-size="11" fill="#333">2–4</text>
+              <text x="215" y="198" font-size="11" fill="#333">4–6</text>
+              <text x="285" y="198" font-size="11" fill="#333">6–8</text>
+              <text x="350" y="198" font-size="11" fill="#333">8+</text>
+              <text x="82" y="112" font-size="11" fill="#111">6</text>
+              <text x="152" y="72" font-size="11" fill="#111">10</text>
+              <text x="222" y="42" font-size="11" fill="#111">13</text>
+              <text x="292" y="92" font-size="11" fill="#111">8</text>
+              <text x="362" y="132" font-size="11" fill="#111">4</text>
+            </svg>
+            <p class="chart-caption">圖一　學生一星期閱讀時數分布（小時）</p>
+          </div>
+          <div class="subq"><span class="subq-label">(a)</span> 求閱讀時數在 $4$–$6$ 小時的學生所佔百分比。</div>
+          <div class="subq"><span class="subq-label">(b)</span> 估計全班閱讀時數的眾數組。</div>
+          <div class="subq"><span class="subq-label">(c)</span> 若另加 5 名學生，每人閱讀 $3$ 小時，說明眾數組會否改變，並簡述理由。</div>
+          <div class="answer-lines"><div class="line"></div><div class="line"></div><div class="line"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="q">
+      <div class="q-head">
+        <span class="q-no">5.</span>
+        <div class="q-body">
+          <span class="marks">(14 分)</span>
+          設 $f(x)=x^3-3x+1$。
+          <div class="subq"><span class="subq-label">(a)</span> 求 $f'(x)$。</div>
+          <div class="subq"><span class="subq-label">(b)</span> 求 $f(x)$ 的靜止點，並判斷其為極大抑或極小。</div>
+          <div class="subq"><span class="subq-label">(c)</span> 求 $\\displaystyle \\int_0^1 \\left(x^3-3x+1\\right)\\,dx$。</div>
+          <div class="answer-lines"><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <p class="end-mark">— 全卷完 —</p>
+  </article>
+</body>
+</html>`;
+
+    function getDemoHtml(which) {
+      return (which || demoSelect.value) === 'poster' ? demoPoster : demoMath;
+    }
 
     function setStatus(message, type = 'normal') {
       statusEl.textContent = message;
@@ -388,9 +694,38 @@
 
     function normalizeHtml(input) {
       const trimmed = input.trim();
-      if (!trimmed) return demoHtml;
+      if (!trimmed) return getDemoHtml('math');
       if (/<!doctype|<html[\s>]/i.test(trimmed)) return trimmed;
       return `<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Preview</title></head><body>${trimmed}</body></html>`;
+    }
+
+    function injectKatex(html, enabled) {
+      if (!enabled) return html;
+      const headBits = `
+<link rel="stylesheet" href="${KATEX_CDN}/katex.min.css" crossorigin="anonymous">
+<script defer src="${KATEX_CDN}/katex.min.js" crossorigin="anonymous"><\/script>
+<script defer src="${KATEX_CDN}/contrib/auto-render.min.js" crossorigin="anonymous" onload="window.__hepRenderKatex && window.__hepRenderKatex()"><\/script>
+<script>
+window.__hepRenderKatex = function () {
+  if (!window.renderMathInElement) return;
+  try {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '\\\\[', right: '\\\\]', display: true},
+        {left: '$', right: '$', display: false},
+        {left: '\\\\(', right: '\\\\)', display: false}
+      ],
+      throwOnError: false,
+      ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code', 'option']
+    });
+  } catch (e) { console.warn('KaTeX render error', e); }
+  document.documentElement.dataset.katexReady = '1';
+  document.dispatchEvent(new Event('katex:rendered'));
+};
+<\/script>`;
+      if (/<\/head>/i.test(html)) return html.replace(/<\/head>/i, () => headBits + '</head>');
+      return headBits + html;
     }
 
     function injectEditorBridge(html) {
@@ -410,7 +745,7 @@
         if (node.nodeValue.trim() !== '') elements.add(node.parentElement);
       }
       elements.forEach(el => {
-        if (el && !el.closest('script, style, svg, iframe, noscript')) {
+        if (el && !el.closest('script, style, svg, iframe, noscript, .katex, math')) {
           el.setAttribute('contenteditable', 'true');
           el.setAttribute('data-live-editable', 'true');
         }
@@ -422,25 +757,36 @@
       });
     }
   }
+  function getEditedHtml(){
+    return '<!DOCTYPE html>\\n' + document.documentElement.outerHTML;
+  }
   window.enableLiveTextEdit = function(enabled){ markEditable(!!enabled); };
-  window.getEditedHtml = function(){ return '<!DOCTYPE html>\\n' + document.documentElement.outerHTML; };
+  window.getEditedHtml = getEditedHtml;
   window.addEventListener('message', (event) => {
     if (!event.data || !event.data.type) return;
     if (event.data.type === 'SET_EDITABLE') markEditable(event.data.value);
+    if (event.data.type === 'GET_EDITED_HTML') {
+      parent.postMessage({ type: 'EDITED_HTML', html: getEditedHtml() }, '*');
+    }
   });
 })();
 <\/script>`;
 
-      if (/<\/body>/i.test(html)) return html.replace(/<\/body>/i, `${bridge}</body>`);
+      if (/<\/body>/i.test(html)) return html.replace(/<\/body>/i, () => bridge + '</body>');
       return html + bridge;
     }
 
     function renderPreview() {
       try {
-        const finalHtml = injectEditorBridge(normalizeHtml(htmlInput.value));
+        const base = normalizeHtml(htmlInput.value);
+        // Skip KaTeX while editing so sync-back keeps source TeX delimiters
+        const withMath = injectKatex(base, !editableMode);
+        const finalHtml = injectEditorBridge(withMath);
         previewFrame.srcdoc = finalHtml;
-        previewInfo.textContent = '預覽已更新，可用於直接編輯與 PDF 匯出。';
-        setStatus('預覽已更新');
+        previewInfo.textContent = editableMode
+          ? '直接改字模式：暫不渲染公式，方便同步回原始碼。'
+          : '預覽已更新（KaTeX + 沙盒 iframe，無 allow-same-origin）。';
+        setStatus(editableMode ? '直接改字預覽已更新' : '預覽已更新');
       } catch (error) {
         setStatus('HTML 渲染失敗', 'error');
         previewInfo.textContent = error.message;
@@ -449,14 +795,9 @@
 
     function scheduleRender() {
       updateStats();
-
-      // 自動儲存草稿（在某些沙盒環境可能不可用）
       try {
         localStorage.setItem('html-editor-pro:draft', htmlInput.value);
-      } catch (e) {
-        // ignore
-      }
-
+      } catch (e) { /* ignore */ }
       if (!livePreview) return;
       if (editableMode) return;
       window.clearTimeout(renderTimer);
@@ -467,111 +808,107 @@
       editableMode = enabled;
       editableToggle.textContent = `直接改字：${enabled ? '開' : '關'}`;
       editableToggle.classList.toggle('active', enabled);
-      editInfo.textContent = enabled ? '目前可直接點擊文字修改' : '目前只讀';
+      editInfo.textContent = enabled ? '目前可直接點擊文字修改（公式暫緩渲染）' : '目前只讀';
 
-      const doPost = () => {
+      // Re-render so KaTeX is toggled; then ask iframe to enable edit marks
+      renderPreview();
+      previewFrame.addEventListener('load', () => {
         try {
           previewFrame.contentWindow.postMessage({ type: 'SET_EDITABLE', value: enabled }, '*');
         } catch (e) {
-          console.error("無法發送訊息至 iframe:", e);
+          console.error('無法發送訊息至 iframe:', e);
         }
-      };
-
-      try {
-        if (previewFrame.contentDocument?.readyState === 'complete') {
-          doPost();
-        } else {
-          previewFrame.addEventListener('load', doPost, { once: true });
-        }
-      } catch (e) {
-        console.error("無法存取 iframe 內容:", e);
-      }
+      }, { once: true });
 
       setStatus(enabled ? '已啟用直接改字模式' : '已關閉直接改字模式');
     }
 
-    async function syncBackFromPreview() {
-      try {
-        const win = previewFrame.contentWindow;
-        if (!win || typeof win.getEditedHtml !== 'function') throw new Error('目前預覽未就緒');
-        htmlInput.value = win.getEditedHtml();
-        updateStats();
-        setStatus('已同步修改內容回 HTML');
-      } catch (error) {
-        setStatus('同步失敗', 'error');
-        console.error(error);
-      }
+    function syncBackFromPreview() {
+      return new Promise((resolve) => {
+        const onMessage = (event) => {
+          if (event.source !== previewFrame.contentWindow) return;
+          if (!event.data || event.data.type !== 'EDITED_HTML') return;
+          window.clearTimeout(syncWaitTimer);
+          window.removeEventListener('message', onMessage);
+          try {
+            htmlInput.value = event.data.html;
+            updateStats();
+            setStatus('已同步修改內容回 HTML');
+          } catch (e) {
+            setStatus('同步失敗', 'error');
+          }
+          resolve(true);
+        };
+        window.addEventListener('message', onMessage);
+        try {
+          previewFrame.contentWindow.postMessage({ type: 'GET_EDITED_HTML' }, '*');
+        } catch (e) {
+          window.removeEventListener('message', onMessage);
+          setStatus('預覽未就緒，無法同步', 'error');
+          resolve(false);
+          return;
+        }
+        syncWaitTimer = window.setTimeout(() => {
+          window.removeEventListener('message', onMessage);
+          setStatus('同步逾時，請稍後再試', 'warn');
+          resolve(false);
+        }, 3000);
+      });
     }
 
     function simpleBeautify(html) {
       return html.replace(/></g, '>\n<').replace(/\n{3,}/g, '\n\n').trim();
     }
 
-    // ✅ 正確做法：存到 query 的 c 參數，使用 URL/searchParams，避免 + 編碼問題
     function saveToUrl() {
-  try {
-    // ── 第一關：檢查原始內容大小 ──────────────────────────
-    const byteSize = new Blob([htmlInput.value]).size;
-    if (byteSize > 200 * 1024) {
-      const kb = (byteSize / 1024).toFixed(1);
-      setStatus(`內容太大（${kb} KB），超過 200 KB 限制`, 'warn');
-      alert(`內容太大（${kb} KB），超過 200 KB 限制，無法儲存為連結。\n建議精簡 HTML 內容後再試。`);
-      return;
+      try {
+        const byteSize = new Blob([htmlInput.value]).size;
+        if (byteSize > 200 * 1024) {
+          const kb = (byteSize / 1024).toFixed(1);
+          setStatus(`內容太大（${kb} KB），超過 200 KB 限制`, 'warn');
+          alert(`內容太大（${kb} KB），超過 200 KB 限制，無法儲存為連結。\\n建議精簡 HTML，或改用「下載 .html」。`);
+          return;
+        }
+
+        const compressed = LZString.compressToEncodedURIComponent(htmlInput.value);
+        const paramLength = compressed.length;
+
+        if (paramLength > 6000) {
+          const kb = (byteSize / 1024).toFixed(1);
+          setStatus(`壓縮後仍太長（${paramLength} 字元），建議下載檔案`, 'warn');
+          alert(
+            `壓縮後的 URL 參數長度為 ${paramLength} 字元，超過安全上限（6,000）。\\n` +
+            `原始內容約 ${kb} KB。\\n\\n` +
+            `建議：精簡內容，或改用「下載 .html」／「複製 HTML」。`
+          );
+          return;
+        }
+
+        const urlObj = new URL(location.href);
+        urlObj.searchParams.set('c', compressed);
+        urlObj.hash = '';
+        const finalUrl = urlObj.toString();
+
+        navigator.clipboard.writeText(finalUrl)
+          .then(() => setStatus(`連結已複製（${paramLength} 字元）`))
+          .catch(() => {
+            prompt('請手動複製以下連結：', finalUrl);
+            setStatus('連結已產生（請手動複製）', 'warn');
+          });
+
+        history.replaceState(null, '', urlObj.pathname + urlObj.search);
+      } catch (e) {
+        console.error(e);
+        setStatus('儲存連結失敗', 'error');
+      }
     }
 
-    // ── 第二關：壓縮並檢查 URL 長度 ────────────────────────
-    const compressed = LZString.compressToEncodedURIComponent(htmlInput.value);
-
-    // 只計算 ?c= 參數本身的長度（更精確）
-    const paramLength = compressed.length;
-
-    // 保守上限：6,000 字元（相容大多數伺服器與瀏覽器）
-    if (paramLength > 6000) {
-      const kb = (byteSize / 1024).toFixed(1);
-      setStatus(`壓縮後仍太長（${paramLength} 字元），建議精簡內容`, 'warn');
-      alert(
-        `壓縮後的 URL 參數長度為 ${paramLength} 字元，超過安全上限（6,000）。\n` +
-        `原始內容約 ${kb} KB。\n\n` +
-        `建議：\n` +
-        `• 移除不必要的空白與註解\n` +
-        `• 使用「整理格式」功能壓縮代碼\n` +
-        `• 或改用「複製 HTML」手動儲存`
-      );
-      return;
-    }
-
-    // ── 第三關：產生並複製 URL ──────────────────────────────
-    const urlObj = new URL(location.href);
-    urlObj.searchParams.set('c', compressed);
-    urlObj.hash = '';
-    const finalUrl = urlObj.toString();
-
-    navigator.clipboard.writeText(finalUrl)
-      .then(() => setStatus(`🔗 連結已複製（${paramLength} 字元）`))
-      .catch(() => {
-        // 剪貼簿失敗時，顯示 URL 讓用戶手動複製
-        prompt('請手動複製以下連結：', finalUrl);
-        setStatus('連結已產生（請手動複製）', 'warn');
-      });
-
-    history.replaceState(null, '', urlObj.pathname + urlObj.search);
-
-  } catch (e) {
-    console.error(e);
-    setStatus('儲存連結失敗', 'error');
-  }
-}
-
-    // ✅ 正確讀取：優先 query ?c=，兼容舊 hash 格式
     function loadFromUrl() {
       try {
         let payload = null;
-
-        // 1) query: ?c=...
         const params = new URLSearchParams(location.search);
         payload = params.get('c');
 
-        // 2) fallback: #<payload> 或 #c=<payload>
         if (!payload && location.hash) {
           const rawHash = location.hash.slice(1);
           if (rawHash.startsWith('c=')) payload = rawHash.slice(2);
@@ -580,16 +917,14 @@
 
         if (!payload) return false;
 
-        // 容錯：若 + 被轉成空白，補回
         payload = payload.replace(/ /g, '+');
-
         const decompressed = LZString.decompressFromEncodedURIComponent(payload);
         if (!decompressed) return false;
 
         htmlInput.value = decompressed;
         updateStats();
         renderPreview();
-        setStatus('已從 URL 載入內容');
+        setStatus('已從 URL 載入內容（請只開啟你信任的分享連結）', 'warn');
         return true;
       } catch (err) {
         console.error('loadFromUrl error:', err);
@@ -599,6 +934,23 @@
 
     function clearUrl() {
       history.replaceState(null, '', location.pathname);
+    }
+
+    function downloadHtmlFile() {
+      try {
+        const blob = new Blob([normalizeHtml(htmlInput.value)], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'html-editor-pro-export.html';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        setStatus('已下載 HTML 檔案');
+      } catch (e) {
+        setStatus('下載失敗', 'error');
+      }
     }
 
     function exportPdf() {
@@ -612,7 +964,6 @@
 
         const marginMap = { '8': '8mm', '12': '12mm', '18': '18mm' };
         const marginVal = marginMap[margin] || '12mm';
-
         const formatMap = { 'a4': 'A4', 'letter': 'letter', 'legal': 'legal' };
         const paperSize = formatMap[format] || 'A4';
 
@@ -630,23 +981,46 @@
   }
 </style>`;
 
+        // Wait for KaTeX before calling print()
         const printScript = `<script>
-window.addEventListener('load', function() {
-  window.print();
-});
+(function () {
+  function goPrint() {
+    try { window.focus(); window.print(); } catch (e) {}
+  }
+  function waitKatexThenPrint() {
+    if (document.documentElement.dataset.katexReady === '1' || document.querySelector('.katex')) {
+      setTimeout(goPrint, 200);
+      return;
+    }
+    var n = 0;
+    var t = setInterval(function () {
+      n++;
+      if (window.__hepRenderKatex) {
+        try { window.__hepRenderKatex(); } catch (e) {}
+      }
+      if (document.documentElement.dataset.katexReady === '1' || document.querySelector('.katex') || n > 40) {
+        clearInterval(t);
+        setTimeout(goPrint, 250);
+      }
+    }, 100);
+  }
+  window.addEventListener('katex:rendered', function () { setTimeout(goPrint, 150); }, { once: true });
+  if (document.readyState === 'complete') waitKatexThenPrint();
+  else window.addEventListener('load', waitKatexThenPrint);
+})();
 <\/script>`;
 
         let printHtml = srcDoc;
         printHtml = printHtml.replace(/<style id="__print_override__">[\s\S]*?<\/style>/g, '');
 
         if (/<\/head>/i.test(printHtml)) {
-          printHtml = printHtml.replace(/<\/head>/i, `${printStyle}</head>`);
+          printHtml = printHtml.replace(/<\/head>/i, () => printStyle + '</head>');
         } else {
           printHtml = printStyle + printHtml;
         }
 
         if (/<\/body>/i.test(printHtml)) {
-          printHtml = printHtml.replace(/<\/body>/i, `${printScript}</body>`);
+          printHtml = printHtml.replace(/<\/body>/i, () => printScript + '</body>');
         } else {
           printHtml += printScript;
         }
@@ -660,7 +1034,7 @@ window.addEventListener('load', function() {
         printTab.document.write(printHtml);
         printTab.document.close();
 
-        setStatus('已開啟列印視窗');
+        setStatus('已開啟列印視窗（等待 KaTeX 後列印）');
       } catch (error) {
         setStatus('開啟列印失敗', 'error');
         console.error(error);
@@ -668,10 +1042,8 @@ window.addEventListener('load', function() {
     }
 
     function initContent() {
-      // 1. URL
       if (loadFromUrl()) return;
 
-      // 2. localStorage
       try {
         const draft = localStorage.getItem('html-editor-pro:draft');
         if (draft && draft.trim()) {
@@ -681,21 +1053,19 @@ window.addEventListener('load', function() {
           setStatus('已恢復上次的草稿');
           return;
         }
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) { /* ignore */ }
 
-      // 3. demo
-      htmlInput.value = demoHtml;
+      demoSelect.value = 'math';
+      htmlInput.value = demoMath;
       updateStats();
       renderPreview();
     }
 
     document.getElementById('loadDemo').addEventListener('click', () => {
-      htmlInput.value = demoHtml;
+      htmlInput.value = getDemoHtml();
       updateStats();
       renderPreview();
-      setStatus('已載入示例');
+      setStatus(demoSelect.value === 'math' ? '已載入數學練習卷示例' : '已載入活動海報示例');
     });
 
     document.getElementById('beautify').addEventListener('click', () => {
@@ -713,8 +1083,7 @@ window.addEventListener('load', function() {
       setStatus('已清空，並重載預設示例', 'warn');
     });
 
-    document.getElementById('syncBack').addEventListener('click', syncBackFromPreview);
-
+    document.getElementById('syncBack').addEventListener('click', () => { syncBackFromPreview(); });
     document.getElementById('copyHtml').addEventListener('click', async () => {
       try {
         await navigator.clipboard.writeText(htmlInput.value);
@@ -725,6 +1094,7 @@ window.addEventListener('load', function() {
     });
 
     document.getElementById('saveUrl').addEventListener('click', saveToUrl);
+    document.getElementById('downloadHtml').addEventListener('click', downloadHtmlFile);
     document.getElementById('exportPdf').addEventListener('click', exportPdf);
 
     editableToggle.addEventListener('click', () => setEditableMode(!editableMode));
@@ -747,10 +1117,13 @@ window.addEventListener('load', function() {
     htmlInput.addEventListener('input', scheduleRender);
 
     previewFrame.addEventListener('load', () => {
-      if (editableMode) setEditableMode(true);
+      if (editableMode) {
+        try {
+          previewFrame.contentWindow.postMessage({ type: 'SET_EDITABLE', value: true }, '*');
+        } catch (e) { /* ignore */ }
+      }
     });
 
-    // 單一初始化入口
     initContent();
   </script>
 </body>
